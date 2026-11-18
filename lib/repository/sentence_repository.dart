@@ -8,7 +8,6 @@ class SentenceRepository {
     table = database.sentences;
   }
 
-  /// 같은 내용(문장 + 병음 + 번역)의 문장 id를 찾는다. 없으면 null.
   Future<int?> findIdByContent(
     String sentence,
     String pinyin,

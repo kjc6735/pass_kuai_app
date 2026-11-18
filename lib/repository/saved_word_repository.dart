@@ -9,7 +9,6 @@ class SavedWordRepository {
     table = database.savedWords;
   }
 
-  /// 저장한 단어들을 원본 Words와 조인해서 최근 저장순으로 가져온다.
   Future<List<Word>> findSavedWords() {
     final words = database.words;
     final query =
@@ -30,7 +29,6 @@ class SavedWordRepository {
     return database.into(table).insert(word);
   }
 
-  /// 단어를 단어장에 저장한다. 이미 있으면 false, 새로 저장하면 true.
   Future<bool> save(int wordId) async {
     final existing =
         await (database.select(table)
@@ -46,5 +44,51 @@ class SavedWordRepository {
     return (database.delete(
       table,
     )..where((savedWord) => savedWord.wordId.equals(id))).go();
+  }
+
+  Expression<bool> _dueFilter(DateTime now) =>
+      table.nextReviewAt.isNull() | table.nextReviewAt.isSmallerOrEqualValue(now);
+
+  Future<List<Word>> findDueWords(DateTime now, {int limit = 50}) {
+    final words = database.words;
+    final query =
+        database.select(table).join([
+            innerJoin(words, words.id.equalsExp(table.wordId)),
+          ])
+          ..where(_dueFilter(now))
+          ..orderBy([OrderingTerm.asc(table.nextReviewAt)])
+          ..limit(limit);
+
+    return query.map((row) => row.readTable(words)).get();
+  }
+
+  Stream<int> watchDueCount(DateTime now) {
+    final count = table.wordId.count();
+    final query = database.selectOnly(table)
+      ..addColumns([count])
+      ..where(_dueFilter(now));
+    return query.map((row) => row.read(count) ?? 0).watchSingle();
+  }
+
+  Future<int> findLevel(int wordId) async {
+    final row =
+        await (database.select(table)..where((w) => w.wordId.equals(wordId)))
+            .getSingleOrNull();
+    return row?.srsLevel ?? 0;
+  }
+
+  Future<void> updateReview(
+    int wordId, {
+    required int level,
+    required DateTime nextReviewAt,
+    required DateTime reviewedAt,
+  }) {
+    return (database.update(table)..where((w) => w.wordId.equals(wordId))).write(
+      SavedWordsCompanion(
+        srsLevel: Value(level),
+        nextReviewAt: Value(nextReviewAt),
+        lastReviewedAt: Value(reviewedAt),
+      ),
+    );
   }
 }

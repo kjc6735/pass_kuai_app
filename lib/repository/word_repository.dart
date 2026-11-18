@@ -14,8 +14,6 @@ class WordRepository {
     )..where((word) => word.id.equals(id))).getSingleOrNull();
   }
 
-  /// 같은 (단어 + 병음 + 뜻)이 이미 있으면 그 id를 재사용하고,
-  /// 없으면 새로 넣은 뒤 id를 반환한다. (unique 위반 예외 방지 + 단어 재사용)
   Future<int> addWord(WordsCompanion word) async {
     final existing =
         await (database.select(table)..where(

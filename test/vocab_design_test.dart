@@ -20,7 +20,6 @@ void main() {
   late SentenceService sentenceService;
   late VocabService vocab;
 
-  // 분석 결과(model) 헬퍼: words = [[한자, 병음, 뜻], ...]
   model.SentenceAnalysis analysis(
     String sentence,
     String translation,
@@ -87,8 +86,8 @@ void main() {
       meaning: '너',
       syllables: const [],
     );
-    expect(await vocab.saveWord(w), isTrue); // 새로 저장
-    expect(await vocab.saveWord(w), isFalse); // 중복 → false
+    expect(await vocab.saveWord(w), isTrue);
+    expect(await vocab.saveWord(w), isFalse);
 
     final saved = await savedWordRepo.findSavedWords();
     expect(saved.length, 1);
@@ -122,18 +121,16 @@ void main() {
       ['好', 'hǎo', '좋다'],
     ]);
     expect(await vocab.saveSentence(a), isTrue);
-    expect(await vocab.saveSentence(a), isFalse); // 같은 문장 재저장 막힘
+    expect(await vocab.saveSentence(a), isFalse);
 
     final savedSentences = await savedSentenceRepo.findSavedSentences();
     expect(savedSentences.length, 1);
     expect(savedSentences.first.sentence, '你好');
 
-    // 단어 분석(매핑)까지 저장돼 있어야 함
     expect(await mappingCount(savedSentences.first.id), 2);
   });
 
   test('cleanup: 저장 안 한 검색데이터만 삭제되고 저장본은 살아남는다', () async {
-    // 하나는 단어장에 저장, 다른 하나는 검색만(저장 X)
     await vocab.saveSentence(analysis('你好', '안녕', [
       ['你', 'nǐ', '너'],
       ['好', 'hǎo', '좋다'],
@@ -145,17 +142,14 @@ void main() {
 
     await sentenceService.cleanupSearchData();
 
-    // 저장 문장은 남고, 저장 안 한 문장은 삭제
     final sentences = await db.select(db.sentences).get();
     final sentenceTexts = sentences.map((s) => s.sentence).toSet();
     expect(sentenceTexts, contains('你好'));
     expect(sentenceTexts, isNot(contains('再见')));
 
-    // 저장 문장의 단어분석(매핑)도 살아있어야 함
     final savedId = sentences.firstWhere((s) => s.sentence == '你好').id;
     expect(await mappingCount(savedId), 2);
 
-    // 你/好는 저장 문장이 써서 생존, 再/见은 고아라 삭제
     final wordTexts =
         (await db.select(db.words).get()).map((w) => w.word).toSet();
     expect(wordTexts, containsAll(['你', '好']));
@@ -164,7 +158,6 @@ void main() {
   });
 
   test('개별 저장한 단어는 cleanup에서 보호된다', () async {
-    // 문장에 안 쓰인 단어를 단독 저장
     await vocab.saveWord(model.Word(
       text: '謝謝',
       pinyin: 'xièxie',
@@ -176,7 +169,7 @@ void main() {
 
     final wordTexts =
         (await db.select(db.words).get()).map((w) => w.word).toSet();
-    expect(wordTexts, contains('謝謝')); // SavedWords가 보호
+    expect(wordTexts, contains('謝謝'));
   });
 
   test('cascade: 검색 문장 삭제 시 매핑도 함께 삭제된다', () async {
@@ -186,7 +179,7 @@ void main() {
     expect(await mappingCount(id), 1);
 
     await sentenceService.deleteSentence(id);
-    expect(await mappingCount(id), 0); // cascade로 사라짐
+    expect(await mappingCount(id), 0);
   });
 
   test('저장된 문장은 FK 보호로 직접 삭제되지 않는다', () async {
@@ -195,7 +188,6 @@ void main() {
     ]));
     final saved = (await savedSentenceRepo.findSavedSentences()).first;
 
-    // SavedSentences가 참조 중 → FK 위반 예외
     expect(
       () => sentenceService.deleteSentence(saved.id),
       throwsA(anything),

@@ -32,7 +32,7 @@ class $SentencesTable extends Sentences
     false,
     additionalChecks: GeneratedColumn.checkTextLength(
       minTextLength: 1,
-      maxTextLength: 50,
+      maxTextLength: 1000,
     ),
     type: DriftSqlType.string,
     requiredDuringInsert: true,
@@ -47,7 +47,7 @@ class $SentencesTable extends Sentences
     false,
     additionalChecks: GeneratedColumn.checkTextLength(
       minTextLength: 1,
-      maxTextLength: 100,
+      maxTextLength: 4000,
     ),
     type: DriftSqlType.string,
     requiredDuringInsert: true,
@@ -60,7 +60,7 @@ class $SentencesTable extends Sentences
     false,
     additionalChecks: GeneratedColumn.checkTextLength(
       minTextLength: 1,
-      maxTextLength: 200,
+      maxTextLength: 8000,
     ),
     type: DriftSqlType.string,
     requiredDuringInsert: true,
@@ -1032,8 +1032,49 @@ class $SavedWordsTable extends SavedWords
     requiredDuringInsert: false,
     defaultValue: currentDateAndTime,
   );
+  static const VerificationMeta _srsLevelMeta = const VerificationMeta(
+    'srsLevel',
+  );
   @override
-  List<GeneratedColumn> get $columns => [wordId, savedAt];
+  late final GeneratedColumn<int> srsLevel = GeneratedColumn<int>(
+    'srs_level',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _nextReviewAtMeta = const VerificationMeta(
+    'nextReviewAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> nextReviewAt = GeneratedColumn<DateTime>(
+    'next_review_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lastReviewedAtMeta = const VerificationMeta(
+    'lastReviewedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastReviewedAt =
+      GeneratedColumn<DateTime>(
+        'last_reviewed_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  @override
+  List<GeneratedColumn> get $columns => [
+    wordId,
+    savedAt,
+    srsLevel,
+    nextReviewAt,
+    lastReviewedAt,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1058,6 +1099,30 @@ class $SavedWordsTable extends SavedWords
         savedAt.isAcceptableOrUnknown(data['saved_at']!, _savedAtMeta),
       );
     }
+    if (data.containsKey('srs_level')) {
+      context.handle(
+        _srsLevelMeta,
+        srsLevel.isAcceptableOrUnknown(data['srs_level']!, _srsLevelMeta),
+      );
+    }
+    if (data.containsKey('next_review_at')) {
+      context.handle(
+        _nextReviewAtMeta,
+        nextReviewAt.isAcceptableOrUnknown(
+          data['next_review_at']!,
+          _nextReviewAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_reviewed_at')) {
+      context.handle(
+        _lastReviewedAtMeta,
+        lastReviewedAt.isAcceptableOrUnknown(
+          data['last_reviewed_at']!,
+          _lastReviewedAtMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1075,6 +1140,18 @@ class $SavedWordsTable extends SavedWords
         DriftSqlType.dateTime,
         data['${effectivePrefix}saved_at'],
       )!,
+      srsLevel: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}srs_level'],
+      )!,
+      nextReviewAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}next_review_at'],
+      ),
+      lastReviewedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_reviewed_at'],
+      ),
     );
   }
 
@@ -1087,17 +1164,48 @@ class $SavedWordsTable extends SavedWords
 class SavedWord extends DataClass implements Insertable<SavedWord> {
   final int wordId;
   final DateTime savedAt;
-  const SavedWord({required this.wordId, required this.savedAt});
+
+  /// 0 = 새 단어/틀린 단어, 5 = 가장 잘 아는 단어
+  final int srsLevel;
+
+  /// 다음 복습 시각. null이면 아직 한 번도 안 본 단어라 바로 복습 대상.
+  /// (SQLite는 기존 표에 칸을 추가할 때 "지금 시각" 같은 기본값을 못 넣어서 null로 둔다.)
+  final DateTime? nextReviewAt;
+  final DateTime? lastReviewedAt;
+  const SavedWord({
+    required this.wordId,
+    required this.savedAt,
+    required this.srsLevel,
+    this.nextReviewAt,
+    this.lastReviewedAt,
+  });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['word_id'] = Variable<int>(wordId);
     map['saved_at'] = Variable<DateTime>(savedAt);
+    map['srs_level'] = Variable<int>(srsLevel);
+    if (!nullToAbsent || nextReviewAt != null) {
+      map['next_review_at'] = Variable<DateTime>(nextReviewAt);
+    }
+    if (!nullToAbsent || lastReviewedAt != null) {
+      map['last_reviewed_at'] = Variable<DateTime>(lastReviewedAt);
+    }
     return map;
   }
 
   SavedWordsCompanion toCompanion(bool nullToAbsent) {
-    return SavedWordsCompanion(wordId: Value(wordId), savedAt: Value(savedAt));
+    return SavedWordsCompanion(
+      wordId: Value(wordId),
+      savedAt: Value(savedAt),
+      srsLevel: Value(srsLevel),
+      nextReviewAt: nextReviewAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nextReviewAt),
+      lastReviewedAt: lastReviewedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastReviewedAt),
+    );
   }
 
   factory SavedWord.fromJson(
@@ -1108,6 +1216,9 @@ class SavedWord extends DataClass implements Insertable<SavedWord> {
     return SavedWord(
       wordId: serializer.fromJson<int>(json['wordId']),
       savedAt: serializer.fromJson<DateTime>(json['savedAt']),
+      srsLevel: serializer.fromJson<int>(json['srsLevel']),
+      nextReviewAt: serializer.fromJson<DateTime?>(json['nextReviewAt']),
+      lastReviewedAt: serializer.fromJson<DateTime?>(json['lastReviewedAt']),
     );
   }
   @override
@@ -1116,17 +1227,38 @@ class SavedWord extends DataClass implements Insertable<SavedWord> {
     return <String, dynamic>{
       'wordId': serializer.toJson<int>(wordId),
       'savedAt': serializer.toJson<DateTime>(savedAt),
+      'srsLevel': serializer.toJson<int>(srsLevel),
+      'nextReviewAt': serializer.toJson<DateTime?>(nextReviewAt),
+      'lastReviewedAt': serializer.toJson<DateTime?>(lastReviewedAt),
     };
   }
 
-  SavedWord copyWith({int? wordId, DateTime? savedAt}) => SavedWord(
+  SavedWord copyWith({
+    int? wordId,
+    DateTime? savedAt,
+    int? srsLevel,
+    Value<DateTime?> nextReviewAt = const Value.absent(),
+    Value<DateTime?> lastReviewedAt = const Value.absent(),
+  }) => SavedWord(
     wordId: wordId ?? this.wordId,
     savedAt: savedAt ?? this.savedAt,
+    srsLevel: srsLevel ?? this.srsLevel,
+    nextReviewAt: nextReviewAt.present ? nextReviewAt.value : this.nextReviewAt,
+    lastReviewedAt: lastReviewedAt.present
+        ? lastReviewedAt.value
+        : this.lastReviewedAt,
   );
   SavedWord copyWithCompanion(SavedWordsCompanion data) {
     return SavedWord(
       wordId: data.wordId.present ? data.wordId.value : this.wordId,
       savedAt: data.savedAt.present ? data.savedAt.value : this.savedAt,
+      srsLevel: data.srsLevel.present ? data.srsLevel.value : this.srsLevel,
+      nextReviewAt: data.nextReviewAt.present
+          ? data.nextReviewAt.value
+          : this.nextReviewAt,
+      lastReviewedAt: data.lastReviewedAt.present
+          ? data.lastReviewedAt.value
+          : this.lastReviewedAt,
     );
   }
 
@@ -1134,46 +1266,77 @@ class SavedWord extends DataClass implements Insertable<SavedWord> {
   String toString() {
     return (StringBuffer('SavedWord(')
           ..write('wordId: $wordId, ')
-          ..write('savedAt: $savedAt')
+          ..write('savedAt: $savedAt, ')
+          ..write('srsLevel: $srsLevel, ')
+          ..write('nextReviewAt: $nextReviewAt, ')
+          ..write('lastReviewedAt: $lastReviewedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(wordId, savedAt);
+  int get hashCode =>
+      Object.hash(wordId, savedAt, srsLevel, nextReviewAt, lastReviewedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is SavedWord &&
           other.wordId == this.wordId &&
-          other.savedAt == this.savedAt);
+          other.savedAt == this.savedAt &&
+          other.srsLevel == this.srsLevel &&
+          other.nextReviewAt == this.nextReviewAt &&
+          other.lastReviewedAt == this.lastReviewedAt);
 }
 
 class SavedWordsCompanion extends UpdateCompanion<SavedWord> {
   final Value<int> wordId;
   final Value<DateTime> savedAt;
+  final Value<int> srsLevel;
+  final Value<DateTime?> nextReviewAt;
+  final Value<DateTime?> lastReviewedAt;
   const SavedWordsCompanion({
     this.wordId = const Value.absent(),
     this.savedAt = const Value.absent(),
+    this.srsLevel = const Value.absent(),
+    this.nextReviewAt = const Value.absent(),
+    this.lastReviewedAt = const Value.absent(),
   });
   SavedWordsCompanion.insert({
     this.wordId = const Value.absent(),
     this.savedAt = const Value.absent(),
+    this.srsLevel = const Value.absent(),
+    this.nextReviewAt = const Value.absent(),
+    this.lastReviewedAt = const Value.absent(),
   });
   static Insertable<SavedWord> custom({
     Expression<int>? wordId,
     Expression<DateTime>? savedAt,
+    Expression<int>? srsLevel,
+    Expression<DateTime>? nextReviewAt,
+    Expression<DateTime>? lastReviewedAt,
   }) {
     return RawValuesInsertable({
       if (wordId != null) 'word_id': wordId,
       if (savedAt != null) 'saved_at': savedAt,
+      if (srsLevel != null) 'srs_level': srsLevel,
+      if (nextReviewAt != null) 'next_review_at': nextReviewAt,
+      if (lastReviewedAt != null) 'last_reviewed_at': lastReviewedAt,
     });
   }
 
-  SavedWordsCompanion copyWith({Value<int>? wordId, Value<DateTime>? savedAt}) {
+  SavedWordsCompanion copyWith({
+    Value<int>? wordId,
+    Value<DateTime>? savedAt,
+    Value<int>? srsLevel,
+    Value<DateTime?>? nextReviewAt,
+    Value<DateTime?>? lastReviewedAt,
+  }) {
     return SavedWordsCompanion(
       wordId: wordId ?? this.wordId,
       savedAt: savedAt ?? this.savedAt,
+      srsLevel: srsLevel ?? this.srsLevel,
+      nextReviewAt: nextReviewAt ?? this.nextReviewAt,
+      lastReviewedAt: lastReviewedAt ?? this.lastReviewedAt,
     );
   }
 
@@ -1186,6 +1349,15 @@ class SavedWordsCompanion extends UpdateCompanion<SavedWord> {
     if (savedAt.present) {
       map['saved_at'] = Variable<DateTime>(savedAt.value);
     }
+    if (srsLevel.present) {
+      map['srs_level'] = Variable<int>(srsLevel.value);
+    }
+    if (nextReviewAt.present) {
+      map['next_review_at'] = Variable<DateTime>(nextReviewAt.value);
+    }
+    if (lastReviewedAt.present) {
+      map['last_reviewed_at'] = Variable<DateTime>(lastReviewedAt.value);
+    }
     return map;
   }
 
@@ -1193,7 +1365,10 @@ class SavedWordsCompanion extends UpdateCompanion<SavedWord> {
   String toString() {
     return (StringBuffer('SavedWordsCompanion(')
           ..write('wordId: $wordId, ')
-          ..write('savedAt: $savedAt')
+          ..write('savedAt: $savedAt, ')
+          ..write('srsLevel: $srsLevel, ')
+          ..write('nextReviewAt: $nextReviewAt, ')
+          ..write('lastReviewedAt: $lastReviewedAt')
           ..write(')'))
         .toString();
   }
@@ -2596,9 +2771,21 @@ typedef $$SentenceWordsTableProcessedTableManager =
       PrefetchHooks Function({bool sentenceId, bool wordId})
     >;
 typedef $$SavedWordsTableCreateCompanionBuilder =
-    SavedWordsCompanion Function({Value<int> wordId, Value<DateTime> savedAt});
+    SavedWordsCompanion Function({
+      Value<int> wordId,
+      Value<DateTime> savedAt,
+      Value<int> srsLevel,
+      Value<DateTime?> nextReviewAt,
+      Value<DateTime?> lastReviewedAt,
+    });
 typedef $$SavedWordsTableUpdateCompanionBuilder =
-    SavedWordsCompanion Function({Value<int> wordId, Value<DateTime> savedAt});
+    SavedWordsCompanion Function({
+      Value<int> wordId,
+      Value<DateTime> savedAt,
+      Value<int> srsLevel,
+      Value<DateTime?> nextReviewAt,
+      Value<DateTime?> lastReviewedAt,
+    });
 
 final class $$SavedWordsTableReferences
     extends BaseReferences<_$AppDatabase, $SavedWordsTable, SavedWord> {
@@ -2634,6 +2821,21 @@ class $$SavedWordsTableFilterComposer
   });
   ColumnFilters<DateTime> get savedAt => $composableBuilder(
     column: $table.savedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get srsLevel => $composableBuilder(
+    column: $table.srsLevel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get nextReviewAt => $composableBuilder(
+    column: $table.nextReviewAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastReviewedAt => $composableBuilder(
+    column: $table.lastReviewedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2675,6 +2877,21 @@ class $$SavedWordsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get srsLevel => $composableBuilder(
+    column: $table.srsLevel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get nextReviewAt => $composableBuilder(
+    column: $table.nextReviewAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastReviewedAt => $composableBuilder(
+    column: $table.lastReviewedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$WordsTableOrderingComposer get wordId {
     final $$WordsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -2710,6 +2927,19 @@ class $$SavedWordsTableAnnotationComposer
   });
   GeneratedColumn<DateTime> get savedAt =>
       $composableBuilder(column: $table.savedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get srsLevel =>
+      $composableBuilder(column: $table.srsLevel, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get nextReviewAt => $composableBuilder(
+    column: $table.nextReviewAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get lastReviewedAt => $composableBuilder(
+    column: $table.lastReviewedAt,
+    builder: (column) => column,
+  );
 
   $$WordsTableAnnotationComposer get wordId {
     final $$WordsTableAnnotationComposer composer = $composerBuilder(
@@ -2765,13 +2995,30 @@ class $$SavedWordsTableTableManager
               ({
                 Value<int> wordId = const Value.absent(),
                 Value<DateTime> savedAt = const Value.absent(),
-              }) => SavedWordsCompanion(wordId: wordId, savedAt: savedAt),
+                Value<int> srsLevel = const Value.absent(),
+                Value<DateTime?> nextReviewAt = const Value.absent(),
+                Value<DateTime?> lastReviewedAt = const Value.absent(),
+              }) => SavedWordsCompanion(
+                wordId: wordId,
+                savedAt: savedAt,
+                srsLevel: srsLevel,
+                nextReviewAt: nextReviewAt,
+                lastReviewedAt: lastReviewedAt,
+              ),
           createCompanionCallback:
               ({
                 Value<int> wordId = const Value.absent(),
                 Value<DateTime> savedAt = const Value.absent(),
-              }) =>
-                  SavedWordsCompanion.insert(wordId: wordId, savedAt: savedAt),
+                Value<int> srsLevel = const Value.absent(),
+                Value<DateTime?> nextReviewAt = const Value.absent(),
+                Value<DateTime?> lastReviewedAt = const Value.absent(),
+              }) => SavedWordsCompanion.insert(
+                wordId: wordId,
+                savedAt: savedAt,
+                srsLevel: srsLevel,
+                nextReviewAt: nextReviewAt,
+                lastReviewedAt: lastReviewedAt,
+              ),
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (

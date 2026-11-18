@@ -16,7 +16,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -27,6 +27,11 @@ class AppDatabase extends _$AppDatabase {
       if (from < 3) {
         await m.addColumn(words, words.pos);
       }
+      if (from < 4) {
+        await m.addColumn(savedWords, savedWords.srsLevel);
+        await m.addColumn(savedWords, savedWords.nextReviewAt);
+        await m.addColumn(savedWords, savedWords.lastReviewedAt);
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
@@ -35,7 +40,7 @@ class AppDatabase extends _$AppDatabase {
 
   static QueryExecutor _openConnection() {
     return driftDatabase(
-      name: 'passQuai',
+      name: 'passKuai',
       native: const DriftNativeOptions(
         databaseDirectory: getApplicationSupportDirectory,
       ),
