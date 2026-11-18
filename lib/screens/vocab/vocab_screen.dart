@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pass_kuai/components/sentence_row.dart';
+import 'package:pass_kuai/components/ui.dart';
 import 'package:pass_kuai/components/word_row.dart';
 import 'package:pass_kuai/model/analyze_result.dart';
 import 'package:pass_kuai/provider/saved_sentence_repository_provider.dart';
@@ -11,6 +12,7 @@ import 'package:pass_kuai/provider/saved_word_repository_provider.dart';
 import 'package:pass_kuai/provider/sentence_words_repository.provider.dart';
 import 'package:pass_kuai/provider/tts_provider.dart';
 import 'package:pass_kuai/router/router.dart';
+import 'package:pass_kuai/theme/app_colors.dart';
 
 enum _VocabTab { word, sentence }
 
@@ -27,34 +29,33 @@ class _VocabScreenState extends ConsumerState<VocabScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        centerTitle: false,
-        title: const Text('단어장', style: TextStyle(fontWeight: FontWeight.w900)),
-      ),
-      body: Column(
-        children: [
-          // 상단: 단어 / 문장 선택
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-            child: _VocabTabSelector(
-              selected: _tab,
-              onChanged: (tab) => setState(() => _tab = tab),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 16, 20, 0),
+              child: PageHeader(subtitle: '모아 둔 표현', title: '단어장'),
             ),
-          ),
-          // 본문: 선택한 탭의 리스트
-          Expanded(
-            child: _tab == _VocabTab.word
-                ? const _SavedWordList()
-                : const _SavedSentenceList(),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+              child: _VocabTabSelector(
+                selected: _tab,
+                onChanged: (tab) => setState(() => _tab = tab),
+              ),
+            ),
+            Expanded(
+              child: _tab == _VocabTab.word
+                  ? const _SavedWordList()
+                  : const _SavedSentenceList(),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-/// 단어 / 문장 전환용 심플한 세그먼트 토글.
-/// 연한 회색 트랙 위에서 선택된 항목만 흰색 알약으로 부드럽게 슬라이드한다.
 class _VocabTabSelector extends StatelessWidget {
   final _VocabTab selected;
   final ValueChanged<_VocabTab> onChanged;
@@ -67,7 +68,7 @@ class _VocabTabSelector extends StatelessWidget {
       height: 44,
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: const Color(0xFFF2F2F4),
+        color: AppColors.segmentTrack,
         borderRadius: BorderRadius.circular(14),
       ),
       child: LayoutBuilder(
@@ -75,7 +76,6 @@ class _VocabTabSelector extends StatelessWidget {
           final halfWidth = constraints.maxWidth / 2;
           return Stack(
             children: [
-              // 슬라이딩 알약 인디케이터
               AnimatedAlign(
                 duration: const Duration(milliseconds: 220),
                 curve: Curves.easeOutCubic,
@@ -88,13 +88,7 @@ class _VocabTabSelector extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(11),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.06),
-                        blurRadius: 6,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+                    boxShadow: cardShadow,
                   ),
                 ),
               ),
@@ -123,9 +117,7 @@ class _VocabTabSelector extends StatelessWidget {
             style: TextStyle(
               fontSize: 15,
               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-              color: isSelected
-                  ? const Color(0xFF111111)
-                  : Colors.grey.shade500,
+              color: isSelected ? AppColors.primaryText : AppColors.sub,
             ),
             child: Text(label),
           ),
@@ -147,13 +139,18 @@ class _SavedWordList extends ConsumerWidget {
       error: (e, _) => _ErrorState(message: '$e'),
       data: (words) {
         if (words.isEmpty) {
-          return const _EmptyState(text: '저장한 단어가 없어요.');
+          return const _EmptyState(
+            icon: Icons.bookmark_add_outlined,
+            title: '저장한 단어가 없어요',
+            body: '문장 분석에서 단어 옆 + 를 눌러 모아 보세요.',
+          );
         }
         return RefreshIndicator(
           onRefresh: () async => ref.invalidate(savedWordsProvider),
           child: ListView.separated(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
             itemCount: words.length,
-            separatorBuilder: (_, _) => const Divider(height: 1),
+            separatorBuilder: (_, _) => const SizedBox(height: 8),
             itemBuilder: (context, i) {
               final w = words[i];
               return WordRow(
@@ -163,14 +160,16 @@ class _SavedWordList extends ConsumerWidget {
                 pos: w.pos,
                 actions: [
                   SquareIconButton(
-                    icon: Icons.play_arrow,
+                    icon: Icons.volume_up_rounded,
+                    tooltip: '${w.word} 듣기',
                     onPressed: () =>
                         ref.read(ttsServiceProvider).speak(w.word),
                   ),
                   SquareIconButton(
                     icon: Icons.delete_outline,
+                    tooltip: '${w.word} 삭제',
+                    style: IconTileStyle.outline,
                     onPressed: () async {
-                      // 낙관적: 화면에서 즉시 사라지고, 백그라운드로 삭제
                       try {
                         await ref
                             .read(savedWordsProvider.notifier)
@@ -196,7 +195,6 @@ class _SavedWordList extends ConsumerWidget {
   }
 }
 
-/// 저장한 문장 리스트
 class _SavedSentenceList extends ConsumerWidget {
   const _SavedSentenceList();
 
@@ -209,20 +207,24 @@ class _SavedSentenceList extends ConsumerWidget {
       error: (e, _) => _ErrorState(message: '$e'),
       data: (sentences) {
         if (sentences.isEmpty) {
-          return const _EmptyState(text: '저장한 문장이 없어요.');
+          return const _EmptyState(
+            icon: Icons.bookmark_border_rounded,
+            title: '저장한 문장이 없어요',
+            body: '문장 분석 화면 오른쪽 위 책갈피로 저장할 수 있어요.',
+          );
         }
         return RefreshIndicator(
           onRefresh: () async => ref.invalidate(savedSentencesProvider),
           child: ListView.separated(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
             itemCount: sentences.length,
-            separatorBuilder: (_, _) => const Divider(height: 1),
+            separatorBuilder: (_, _) => const SizedBox(height: 8),
             itemBuilder: (context, i) {
               final s = sentences[i];
               return SentenceRow(
                 sentence: s.sentence,
                 translation: s.translation,
                 onTap: () async {
-                  // 저장된 문장의 단어 분석(SentenceWords→Words)을 모아 재구성해서 전달
                   final words = await ref
                       .read(sentenceWordsRepositoryProvider)
                       .findWordsBySentence(s.id);
@@ -254,8 +256,9 @@ class _SavedSentenceList extends ConsumerWidget {
                 actions: [
                   SquareIconButton(
                     icon: Icons.delete_outline,
+                    tooltip: '문장 삭제',
+                    style: IconTileStyle.outline,
                     onPressed: () async {
-                      // 낙관적: 화면에서 즉시 사라지고, 백그라운드로 삭제
                       try {
                         await ref
                             .read(savedSentencesProvider.notifier)
@@ -282,14 +285,14 @@ class _SavedSentenceList extends ConsumerWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  final String text;
-  const _EmptyState({required this.text});
+  final IconData icon;
+  final String title;
+  final String body;
+  const _EmptyState({required this.icon, required this.title, required this.body});
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Text(text, style: const TextStyle(color: Colors.grey)),
-    );
+    return MessageView(icon: icon, title: title, body: body);
   }
 }
 
@@ -299,11 +302,10 @@ class _ErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Text(
-        '불러오기 실패: $message',
-        style: const TextStyle(color: Colors.grey),
-      ),
+    return MessageView(
+      icon: Icons.error_outline_rounded,
+      title: '불러오지 못했어요',
+      body: message,
     );
   }
 }
