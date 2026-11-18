@@ -2,13 +2,13 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "pass_quai (실기기)",
+      "name": "pass_kuai (실기기)",
       "request": "launch",
       "type": "dart",
       "toolArgs": ["--dart-define=API_HOST=172.29.24.193"]
     },
     {
-      "name": "pass_quai (에뮬/시뮬)",
+      "name": "pass_kuai (에뮬/시뮬)",
       "request": "launch",
       "type": "dart"
     }

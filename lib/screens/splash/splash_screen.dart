@@ -5,11 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../provider/db_provider.dart';
+import '../../theme/app_colors.dart';
 import '../../router/router.dart';
 
-/// 앱 진입 시 가장 먼저 보이는 스플래시 화면.
-/// 등장 애니메이션을 보여주는 동안 초기화(DB 워밍업)를 끝내고
-/// 완료되면 분석 탭으로 이동한다.
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
@@ -38,24 +36,20 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     _bootstrap();
   }
 
-  /// 최소 노출 시간과 실제 초기화를 병렬로 진행한 뒤 다음 화면으로 이동.
   Future<void> _bootstrap() async {
     final warmUp = _warmUpDatabase();
     final minVisible = Future<void>.delayed(const Duration(milliseconds: 1600));
     await Future.wait([warmUp, minVisible]);
 
     if (!mounted) return;
-    context.go(RoutePaths.login);
+    context.go(RoutePaths.analyze);
   }
 
-  /// DB를 미리 열어 첫 화면 진입 시 끊김을 줄인다.
-  /// 실패해도 앱 진입은 막지 않는다.
   Future<void> _warmUpDatabase() async {
     try {
       final db = ref.read(dbProvider);
       await db.customSelect('SELECT 1').get();
     } catch (_) {
-      // 워밍업 실패는 무시
     }
   }
 
@@ -68,7 +62,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       body: Center(
         child: FadeTransition(
           opacity: _fade,
@@ -77,16 +71,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // 로고 타일
                 Container(
                   width: 100,
                   height: 100,
                   decoration: BoxDecoration(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.circular(26),
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(30),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.14),
+                        color: AppColors.primary.withValues(alpha: 0.30),
                         blurRadius: 28,
                         offset: const Offset(0, 14),
                       ),
@@ -98,20 +91,19 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 56,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: AppWeights.title,
                         height: 1.0,
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 30),
-                // 워드마크
                 const Text(
-                  'PASS QUAI',
+                  'PASS KUAI',
                   style: TextStyle(
-                    color: Colors.black,
+                    color: AppColors.ink,
                     fontSize: 28,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: AppWeights.title,
                     letterSpacing: 5,
                   ),
                 ),
@@ -119,7 +111,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                 Text(
                   '중국어 문장 분석',
                   style: TextStyle(
-                    color: Colors.grey.shade500,
+                    color: AppColors.sub,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 1.5,
@@ -141,7 +133,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
               width: 22,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                color: Colors.black,
+                color: AppColors.primary,
               ),
             ),
           ),

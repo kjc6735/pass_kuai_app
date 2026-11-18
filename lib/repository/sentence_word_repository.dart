@@ -12,7 +12,6 @@ class SentenceWordsRepository {
     return database.into(table).insert(word);
   }
 
-  /// 한 문장에 속한 단어들을 (SentenceWords ⨝ Words) 가져온다.
   Future<List<Word>> findWordsBySentence(int sentenceId) {
     final words = database.words;
     final query =
