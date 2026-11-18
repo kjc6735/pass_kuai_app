@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>pass_kuai — 화면 목업</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#111111; --text:#1A1A1A; --sub:#9CA3AF; --line:#EFEFEF; --card:#FAFAFA;
+    --t1:#E5484D; --t2:#30A46C; --t3:#0D7DD6; --t4:#8E4EC6; --t0:#9CA3AF;
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+  body{
+    font-family:'Noto Sans KR',-apple-system,sans-serif;
+    background:#F1F1F3; color:var(--text);
+    padding:40px 20px; line-height:1.5;
+  }
+  .hanzi{font-family:'Noto Sans SC',sans-serif;}
+  h1.page-title{text-align:center; font-size:20px; font-weight:700; margin-bottom:6px;}
+  p.page-sub{text-align:center; color:var(--sub); font-size:13px; margin-bottom:32px;}
+
+  .frames{display:flex; gap:32px; justify-content:center; flex-wrap:wrap;}
+  .phone{
+    width:340px; height:720px; background:#fff; border-radius:38px;
+    border:1px solid #E3E3E6; box-shadow:0 12px 40px rgba(0,0,0,.08);
+    overflow:hidden; display:flex; flex-direction:column; position:relative;
+  }
+  .notch{height:28px; display:flex; align-items:center; justify-content:center;}
+  .notch::after{content:""; width:120px; height:6px; background:#E3E3E6; border-radius:3px;}
+  .caption{text-align:center; font-size:13px; color:var(--sub); margin-top:14px; font-weight:500; max-width:340px;}
+
+  /* top app bar */
+  .appbar{display:flex; align-items:center; gap:12px; padding:8px 20px 14px;}
+  .appbar .back{font-size:22px; color:var(--text); width:24px;}
+  .appbar .title{font-size:17px; font-weight:700;}
+  .appbar .spacer{flex:1;}
+  .cam-btn{width:38px; height:38px; border-radius:11px; background:var(--ink); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:18px;}
+
+  .body{flex:1; overflow:hidden; padding:0 20px;}
+  .section-label{font-size:12px; color:var(--sub); font-weight:600; letter-spacing:.04em; margin-bottom:10px;}
+  .play-bar{display:flex; align-items:center; gap:8px; background:var(--ink); color:#fff;
+    border-radius:12px; height:48px; justify-content:center; font-size:15px; font-weight:600;}
+
+  /* ---- Screen 0: 분석 홈 ---- */
+  .text-input{border:1px solid var(--line); border-radius:12px; min-height:110px; padding:14px; margin-bottom:14px;}
+  .text-input .ti-placeholder{color:var(--sub); font-size:14px;}
+  .hint{font-size:12px; color:var(--sub); text-align:center; margin-top:18px;}
+  .hint b{color:var(--ink);}
+
+  /* bottom sheet */
+  .backdrop{position:absolute; inset:0; background:rgba(0,0,0,.32);}
+  .sheet{position:absolute; left:10px; right:10px; bottom:10px;}
+  .sheet .group{background:#fff; border-radius:14px; overflow:hidden; margin-bottom:8px;}
+  .sheet .opt{padding:16px; text-align:center; font-size:16px; color:var(--ink); border-bottom:1px solid var(--line);}
+  .sheet .opt:last-child{border-bottom:none;}
+  .sheet .opt .si{margin-right:8px;}
+  .sheet .cancel{background:#fff; border-radius:14px; padding:16px; text-align:center; font-size:16px; font-weight:700; color:var(--ink);}
+
+  /* ---- Screen 1: 문장 리스트 ---- */
+  .count{font-size:13px; color:var(--sub); margin:2px 0 14px;}
+  .sent-card{padding:16px 0; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:12px;}
+  .sent-card .sc-mid{flex:1;}
+  .sent-card .sc-hz{font-size:21px; font-weight:700; line-height:1.35;}
+  .sent-card .sc-tr{font-size:13px; color:var(--sub); margin-top:4px;}
+  .sent-card .sc-arrow{color:#CFCFD4; font-size:20px;}
+
+  /* ---- Screen 2: 단어별 상세 ---- */
+  .sentence{display:flex; flex-wrap:wrap; gap:2px 6px; margin:6px 0 14px;}
+  .ch{display:flex; flex-direction:column; align-items:center;}
+  .ch .py{font-size:12px; font-weight:500; margin-bottom:1px;}
+  .ch .hz{font-size:34px; font-weight:700; line-height:1;}
+  .py.t1,.hz.t1{color:var(--t1)} .py.t2,.hz.t2{color:var(--t2)}
+  .py.t3,.hz.t3{color:var(--t3)} .py.t4,.hz.t4{color:var(--t4)}
+  .py.t0,.hz.t0{color:var(--t0)}
+  .translation{color:var(--sub); font-size:15px; margin-bottom:16px;}
+  .word-card{display:flex; align-items:center; gap:14px; padding:12px 0; border-bottom:1px solid var(--line);}
+  .word-card .whz{font-size:30px; font-weight:700; min-width:42px; text-align:center;}
+  .word-card .wmid{flex:1;}
+  .word-card .wpy{font-size:14px; font-weight:500;}
+  .word-card .wmean{font-size:14px; color:var(--text);}
+  .word-card .wpos{font-size:11px; color:var(--sub);}
+  .icon-btn{width:34px; height:34px; border:1px solid var(--line); border-radius:10px;
+    display:flex; align-items:center; justify-content:center; font-size:15px; color:var(--sub);}
+  .icon-btn.add{color:var(--ink); font-weight:700;}
+
+  /* ---- Screen 3: 단어장 ---- */
+  .tabs{display:flex; gap:24px; padding:2px 0 14px; border-bottom:1px solid var(--line); margin-bottom:14px;}
+  .tab{font-size:15px; color:var(--sub); font-weight:500; padding-bottom:8px; position:relative;}
+  .tab.active{color:var(--text); font-weight:700;}
+  .tab.active::after{content:""; position:absolute; left:0; right:0; bottom:-15px; height:2px; background:var(--ink);}
+  .voc-item{padding:14px 0; border-bottom:1px solid var(--line);}
+  .voc-top{display:flex; align-items:baseline; gap:10px;}
+  .voc-top .vhz{font-size:24px; font-weight:700;}
+  .voc-top .vpy{font-size:13px; font-weight:500;}
+  .voc-mean{font-size:14px; color:var(--sub); margin-top:2px;}
+
+  /* ---- Screen 4: 학습 ---- */
+  .mode-card{border:1px solid var(--line); border-radius:16px; padding:18px; margin-bottom:14px;}
+  .mode-card .mtop{display:flex; align-items:center; justify-content:space-between;}
+  .mode-card .mtitle{font-size:16px; font-weight:700;}
+  .mode-card .mdesc{font-size:13px; color:var(--sub); margin-top:6px;}
+  .mode-card .marrow{color:var(--sub); font-size:18px;}
+  .mode-card .mtag{font-size:11px; color:var(--sub); margin-top:10px;}
+
+  /* bottom nav */
+  .tabbar{display:flex; border-top:1px solid var(--line); padding:8px 0 14px;}
+  .tabbar .nav{flex:1; text-align:center; font-size:11px; color:var(--sub); display:flex; flex-direction:column; gap:3px;}
+  .tabbar .nav .ic{font-size:19px;}
+  .tabbar .nav.active{color:var(--ink); font-weight:700;}
+  .legend{display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin-top:30px; font-size:12px; color:var(--sub);}
+  .legend span b{display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px; vertical-align:middle;}
+</style>
+</head>
+<body>
+  <h1 class="page-title">pass_kuai — 핵심 화면 목업</h1>
+  <p class="page-sub">미니멀 · 흰 배경 · 한자 타이포 중심 · 색은 성조에만</p>
+
+  <div class="frames">
+
+    <!-- ===== 화면 0: 분석 홈 + 카메라 선택 시트 ===== -->
+    <div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="appbar">
+          <span class="title">분석</span>
+          <span class="spacer"></span>
+          <span class="cam-btn">📷</span>
+        </div>
+        <div class="body">
+          <div class="section-label" style="margin:6px 0 10px;">중국어 문장을 입력하거나, 오른쪽 위 카메라로 촬영하세요</div>
+          <div class="text-input"><div class="ti-placeholder">중국어 문장 입력…  예) 我想喝一杯咖啡</div></div>
+          <div class="play-bar">분석하기</div>
+          <div class="hint">사진은 헤더의 <b>📷</b> 버튼으로</div>
+        </div>
+        <div class="tabbar">
+          <div class="nav active"><span class="ic">◎</span>분석</div>
+          <div class="nav"><span class="ic">▤</span>단어장</div>
+          <div class="nav"><span class="ic">✎</span>학습</div>
+        </div>
+        <!-- 카메라 누르면 뜨는 시트 -->
+        <div class="backdrop"></div>
+        <div class="sheet">
+          <div class="group">
+            <div class="opt"><span class="si">📷</span>사진 찍기</div>
+            <div class="opt"><span class="si">🖼</span>갤러리에서 선택</div>
+          </div>
+          <div class="cancel">취소</div>
+        </div>
+      </div>
+      <div class="caption">⓪ 분석 홈 — 헤더 📷 누르면 사진/갤러리 선택 시트</div>
+    </div>
+
+    <!-- ===== 화면 1: 문장 리스트 (여러 문장) ===== -->
+    <div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="appbar"><span class="back">‹</span><span class="title">분석 결과</span></div>
+        <div class="body">
+          <div class="count">문장 3개 · 누르면 상세 분석</div>
+          <div class="sent-card">
+            <div class="sc-mid">
+              <div class="sc-hz hanzi">我想喝一杯咖啡</div>
+              <div class="sc-tr">나는 커피 한 잔을 마시고 싶다</div>
+            </div>
+            <span class="sc-arrow">›</span>
+          </div>
+          <div class="sent-card">
+            <div class="sc-mid">
+              <div class="sc-hz hanzi">这家店很有名</div>
+              <div class="sc-tr">이 가게는 매우 유명하다</div>
+            </div>
+            <span class="sc-arrow">›</span>
+          </div>
+          <div class="sent-card">
+            <div class="sc-mid">
+              <div class="sc-hz hanzi">谢谢你的帮助</div>
+              <div class="sc-tr">도와줘서 고마워</div>
+            </div>
+            <span class="sc-arrow">›</span>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="nav active"><span class="ic">◎</span>분석</div>
+          <div class="nav"><span class="ic">▤</span>단어장</div>
+          <div class="nav"><span class="ic">✎</span>학습</div>
+        </div>
+      </div>
+      <div class="caption">① 문장 리스트 — 사진에 여러 문장이 있으면 中文+번역으로</div>
+    </div>
+
+    <!-- ===== 화면 2: 단어별 상세 ===== -->
+    <div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="appbar"><span class="back">‹</span><span class="title">문장 분석</span></div>
+        <div class="body">
+          <div class="sentence">
+            <div class="ch"><span class="py t3">wǒ</span><span class="hz t3">我</span></div>
+            <div class="ch"><span class="py t3">xiǎng</span><span class="hz t3">想</span></div>
+            <div class="ch"><span class="py t1">hē</span><span class="hz t1">喝</span></div>
+            <div class="ch"><span class="py t4">yì</span><span class="hz t4">一</span></div>
+            <div class="ch"><span class="py t1">bēi</span><span class="hz t1">杯</span></div>
+            <div class="ch"><span class="py t1">kā</span><span class="hz t1">咖</span></div>
+            <div class="ch"><span class="py t1">fēi</span><span class="hz t1">啡</span></div>
+          </div>
+          <div class="translation">나는 커피 한 잔을 마시고 싶다</div>
+          <div class="play-bar" style="height:46px; margin-bottom:20px;">▶ &nbsp;문장 듣기</div>
+
+          <div class="section-label">단어</div>
+          <div class="word-card">
+            <span class="whz t3">我</span>
+            <div class="wmid"><div class="wpy t3">wǒ</div><div class="wmean">나</div><div class="wpos">대명사</div></div>
+            <div class="icon-btn">▶</div><div class="icon-btn add">＋</div>
+          </div>
+          <div class="word-card">
+            <span class="whz t3">想</span>
+            <div class="wmid"><div class="wpy t3">xiǎng</div><div class="wmean">~하고 싶다</div><div class="wpos">조동사</div></div>
+            <div class="icon-btn">▶</div><div class="icon-btn add">＋</div>
+          </div>
+          <div class="word-card">
+            <span class="whz t1">喝</span>
+            <div class="wmid"><div class="wpy t1">hē</div><div class="wmean">마시다</div><div class="wpos">동사</div></div>
+            <div class="icon-btn">▶</div><div class="icon-btn add">＋</div>
+          </div>
+          <div class="word-card">
+            <span class="whz t1">咖啡</span>
+            <div class="wmid"><div class="wpy t1">kāfēi</div><div class="wmean">커피</div><div class="wpos">명사</div></div>
+            <div class="icon-btn">▶</div><div class="icon-btn add">＋</div>
+          </div>
+        </div>
+      </div>
+      <div class="caption">② 단어별 상세 — 리스트에서 문장 선택 시 (성조 색 표시)</div>
+    </div>
+
+    <!-- ===== 화면 3: 단어장 ===== -->
+    <div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="appbar"><span class="title">단어장</span></div>
+        <div class="body">
+          <div class="tabs"><span class="tab active">단어</span><span class="tab">문장</span></div>
+          <div class="voc-item">
+            <div class="voc-top"><span class="vhz t1">咖啡</span><span class="vpy t1">kāfēi</span></div>
+            <div class="voc-mean">커피 · 명사</div>
+          </div>
+          <div class="voc-item">
+            <div class="voc-top"><span class="vhz t1">喝</span><span class="vpy t1">hē</span></div>
+            <div class="voc-mean">마시다 · 동사</div>
+          </div>
+          <div class="voc-item">
+            <div class="voc-top"><span class="vhz t3">想</span><span class="vpy t3">xiǎng</span></div>
+            <div class="voc-mean">~하고 싶다 · 조동사</div>
+          </div>
+          <div class="voc-item">
+            <div class="voc-top"><span class="vhz t2">学</span><span class="vpy t2">xué</span><span class="vhz t2" style="margin-left:-6px">习</span><span class="vpy t2">xí</span></div>
+            <div class="voc-mean">공부하다 · 동사</div>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="nav"><span class="ic">◎</span>분석</div>
+          <div class="nav active"><span class="ic">▤</span>단어장</div>
+          <div class="nav"><span class="ic">✎</span>학습</div>
+        </div>
+      </div>
+      <div class="caption">③ 단어장 — 저장한 단어/문장 복습</div>
+    </div>
+
+    <!-- ===== 화면 4: 학습 ===== -->
+    <div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="appbar"><span class="title">학습</span></div>
+        <div class="body">
+          <div class="section-label" style="margin:6px 0 14px;">무엇을 연습할까요?</div>
+          <div class="mode-card">
+            <div class="mtop"><span class="mtitle">발음 따라하기</span><span class="marrow">›</span></div>
+            <div class="mdesc">중국어 문장을 보고 성조·성모로 발음해요. 녹음해서 원어민과 비교.</div>
+            <div class="mtag">🎙 녹음 비교</div>
+          </div>
+          <div class="mode-card">
+            <div class="mtop"><span class="mtitle">받아쓰기</span><span class="marrow">›</span></div>
+            <div class="mdesc">한국어 뜻만 보고 중국어로 직접 입력해요.</div>
+            <div class="mtag">⌨ 입력 채점</div>
+          </div>
+          <div class="mode-card">
+            <div class="mtop"><span class="mtitle">단어 학습</span><span class="marrow">›</span></div>
+            <div class="mdesc">단어장 카드를 넘기며 뜻 ↔ 한자·병음을 익혀요.</div>
+            <div class="mtag">🃏 카드 학습</div>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="nav"><span class="ic">◎</span>분석</div>
+          <div class="nav"><span class="ic">▤</span>단어장</div>
+          <div class="nav active"><span class="ic">✎</span>학습</div>
+        </div>
+      </div>
+      <div class="caption">④ 학습 — 3가지 연습 모드</div>
+    </div>
+
+  </div>
+
+  <div class="legend">
+    <span><b style="background:#E5484D"></b>1성</span>
+    <span><b style="background:#30A46C"></b>2성</span>
+    <span><b style="background:#0D7DD6"></b>3성</span>
+    <span><b style="background:#8E4EC6"></b>4성</span>
+    <span><b style="background:#9CA3AF"></b>경성</span>
+  </div>
+</body>
+</html>
