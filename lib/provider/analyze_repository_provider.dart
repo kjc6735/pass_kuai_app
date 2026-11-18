@@ -19,13 +19,4 @@ class AnalyzeRepository {
     return AnalyzeResult.fromJson(res.data);
   }
 
-  // Future<LookupWordResponseDto> lookupWord({}){
-
-  // }
 }
-
-
-
-// class LookupWordResponseDto {
-
-// }

@@ -13,20 +13,18 @@ class SavedWordsNotifier extends AsyncNotifier<List<Word>> {
     return ref.read(savedWordRepositoryProvider).findSavedWords();
   }
 
-  /// 낙관적 삭제: 화면에서 먼저 빼고 백그라운드로 DB 삭제. 실패하면 복구.
   Future<void> remove(int wordId) async {
     final previous = state.valueOrNull ?? const [];
     state = AsyncData(previous.where((w) => w.id != wordId).toList());
     try {
       await ref.read(savedWordRepositoryProvider).delete(wordId);
     } catch (_) {
-      state = AsyncData(previous); // 복구
+      state = AsyncData(previous);
       rethrow;
     }
   }
 }
 
-/// 저장한 단어 목록 (최근 저장순)
 final savedWordsProvider =
     AsyncNotifierProvider<SavedWordsNotifier, List<Word>>(
       SavedWordsNotifier.new,
