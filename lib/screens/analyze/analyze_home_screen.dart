@@ -7,9 +7,8 @@ import 'package:pass_kuai/components/ui.dart';
 import 'package:pass_kuai/model/analyze_result.dart';
 import 'package:pass_kuai/provider/analyze_repository_provider.dart';
 import 'package:pass_kuai/provider/study_service_provider.dart';
+import 'package:pass_kuai/router/router.dart';
 import 'package:pass_kuai/theme/app_colors.dart';
-
-import '../../router/router.dart';
 
 class AnalyzeHomeScreen extends ConsumerStatefulWidget {
   const AnalyzeHomeScreen({super.key});
@@ -46,7 +45,9 @@ class _AnalyzeHomeScreenState extends ConsumerState<AnalyzeHomeScreen> {
       setState(() => _analyzeResult = result);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(friendlyErrorMessage(e))));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(friendlyErrorMessage(e))));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -78,7 +79,10 @@ class _AnalyzeHomeScreenState extends ConsumerState<AnalyzeHomeScreen> {
                   children: [
                     const Text(
                       '중국어 문장을 붙여넣어 보세요',
-                      style: TextStyle(fontSize: 15, fontWeight: AppWeights.label),
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: AppWeights.label,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     TextField(
@@ -87,7 +91,10 @@ class _AnalyzeHomeScreenState extends ConsumerState<AnalyzeHomeScreen> {
                       maxLines: 8,
                       maxLength: _maxInputLength,
                       textInputAction: TextInputAction.newline,
-                      style: const TextStyle(fontSize: 18, color: AppColors.ink),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        color: AppColors.ink,
+                      ),
                       decoration: const InputDecoration(hintText: '예) 我想喝一杯咖啡'),
                     ),
                     const SizedBox(height: 8),
@@ -96,7 +103,9 @@ class _AnalyzeHomeScreenState extends ConsumerState<AnalyzeHomeScreen> {
                       builder: (context, value, _) => PrimaryButton(
                         label: '분석하기',
                         loading: _isLoading,
-                        onPressed: value.text.trim().isNotEmpty ? _analyze : null,
+                        onPressed: value.text.trim().isNotEmpty
+                            ? _analyze
+                            : null,
                       ),
                     ),
                   ],
@@ -119,7 +128,10 @@ class _AnalyzeHomeScreenState extends ConsumerState<AnalyzeHomeScreen> {
                   SentenceRow(
                     sentence: sentence.sentence,
                     translation: sentence.translation,
-                    onTap: () => context.pushNamed(RouteNames.sentenceDetail, extra: sentence),
+                    onTap: () => context.pushNamed(
+                      RouteNames.sentenceDetail,
+                      extra: sentence,
+                    ),
                   ),
                   const SizedBox(height: 10),
                 ],
@@ -148,7 +160,12 @@ class _LogoTile extends StatelessWidget {
         alignment: Alignment.center,
         child: const Text(
           '快',
-          style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: AppWeights.title, height: 1),
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: AppWeights.title,
+            height: 1,
+          ),
         ),
       ),
     );
@@ -178,23 +195,42 @@ class _DueCard extends ConsumerWidget {
             Container(
               width: 44,
               height: 44,
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
-              child: const Icon(Icons.style_outlined, color: AppColors.primaryText),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(
+                Icons.style_outlined,
+                color: AppColors.primaryText,
+              ),
             ),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('복습할 단어 $due개', style: const TextStyle(fontSize: 16, fontWeight: AppWeights.label)),
+                  Text(
+                    '복습할 단어 $due개',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: AppWeights.label,
+                    ),
+                  ),
                   const SizedBox(height: 2),
-                  Text('$minutes분이면 끝나요', style: const TextStyle(fontSize: 13, color: AppColors.sub)),
+                  Text(
+                    '$minutes분이면 끝나요',
+                    style: const TextStyle(fontSize: 13, color: AppColors.sub),
+                  ),
                 ],
               ),
             ),
             const Text(
               '시작 ›',
-              style: TextStyle(fontSize: 14, fontWeight: AppWeights.label, color: AppColors.primaryText),
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: AppWeights.label,
+                color: AppColors.primaryText,
+              ),
             ),
           ],
         ),

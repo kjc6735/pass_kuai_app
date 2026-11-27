@@ -19,7 +19,7 @@ final dioProvider = Provider<Dio>((ref) {
 
   dio.interceptors.add(
     AuthInterceptor(
-      storage: ref.read(tokenStorageProvider),
+      storage: ref.watch(tokenStorageProvider),
       tokenDio: tokenDio,
       retryDio: dio,
     ),

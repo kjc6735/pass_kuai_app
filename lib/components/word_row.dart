@@ -26,8 +26,15 @@ class WordRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final chars = text.characters.toList();
     final colors = charColors;
-    final hanziStyle = const TextStyle(fontSize: 28, fontWeight: AppWeights.hanzi, color: AppColors.ink);
-    final detail = [meaning, if (pos != null && pos!.isNotEmpty) pos!].join(' · ');
+    final hanziStyle = const TextStyle(
+      fontSize: 28,
+      fontWeight: AppWeights.hanzi,
+      color: AppColors.ink,
+    );
+    final detail = [
+      meaning,
+      if (pos != null && pos!.isNotEmpty) pos!,
+    ].join(' · ');
 
     return AppCard(
       radius: 18,
@@ -42,7 +49,10 @@ class WordRow extends StatelessWidget {
                     TextSpan(
                       children: [
                         for (var i = 0; i < chars.length; i++)
-                          TextSpan(text: chars[i], style: hanziStyle.copyWith(color: colors[i])),
+                          TextSpan(
+                            text: chars[i],
+                            style: hanziStyle.copyWith(color: colors[i]),
+                          ),
                       ],
                     ),
                   ),
@@ -52,9 +62,18 @@ class WordRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(pinyin, style: const TextStyle(fontSize: 15, fontWeight: AppWeights.pinyin)),
+                Text(
+                  pinyin,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: AppWeights.pinyin,
+                  ),
+                ),
                 const SizedBox(height: 1),
-                Text(detail, style: const TextStyle(fontSize: 14, color: AppColors.sub)),
+                Text(
+                  detail,
+                  style: const TextStyle(fontSize: 14, color: AppColors.sub),
+                ),
               ],
             ),
           ),
@@ -81,6 +100,11 @@ class SquareIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IconTileButton(icon: icon, onPressed: onPressed, tooltip: tooltip, style: style);
+    return IconTileButton(
+      icon: icon,
+      onPressed: onPressed,
+      tooltip: tooltip,
+      style: style,
+    );
   }
 }

@@ -29,9 +29,18 @@ class SentenceRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(sentence, style: const TextStyle(fontSize: 20, fontWeight: AppWeights.hanzi)),
+                Text(
+                  sentence,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: AppWeights.hanzi,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(translation, style: const TextStyle(fontSize: 14, color: AppColors.sub)),
+                Text(
+                  translation,
+                  style: const TextStyle(fontSize: 14, color: AppColors.sub),
+                ),
               ],
             ),
           ),

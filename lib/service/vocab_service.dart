@@ -1,13 +1,11 @@
-import 'dart:convert';
-
-import 'package:drift/drift.dart';
-import 'package:pass_kuai/model/analyze_result.dart' as model;
+import 'package:pass_kuai/database/database.dart';
+import 'package:pass_kuai/mapper/word_mapper.dart';
+import 'package:pass_kuai/model/analyze_result.dart';
 import 'package:pass_kuai/repository/saved_sentence_repository.dart';
 import 'package:pass_kuai/repository/saved_word_repository.dart';
 import 'package:pass_kuai/repository/sentence_repository.dart';
 import 'package:pass_kuai/repository/word_repository.dart';
 import 'package:pass_kuai/service/sentence_service.dart';
-import 'package:pass_kuai/table/database.dart';
 
 class VocabService {
   final AppDatabase database;
@@ -26,31 +24,27 @@ class VocabService {
     required this.savedSentenceRepository,
   });
 
-  Future<bool> saveWord(model.Word word) {
+  Future<bool> saveWord(WordAnalysis word) {
     return database.transaction(() async {
-      final wordId = await wordRepository.addWord(
-        WordsCompanion(
-          word: Value(word.text),
-          translation: Value(word.meaning),
-          pinyin: Value(word.pinyin),
-          pos: Value(word.pos),
-          syllables: Value(
-            jsonEncode(word.syllables.map((s) => s.toJson()).toList()),
-          ),
-        ),
-      );
+      final wordId = await wordRepository.insertIfAbsent(word.toCompanion());
       return savedWordRepository.save(wordId);
     });
   }
 
-  Future<bool> saveSentence(model.SentenceAnalysis analysis) async {
-    final pinyin = analysis.words.map((w) => w.pinyin).join(" ");
-    final existingId = await sentenceRepository.findIdByContent(
-      analysis.sentence,
-      pinyin,
-      analysis.translation,
-    );
-    final sentenceId = existingId ?? await sentenceService.addSentence(analysis);
-    return savedSentenceRepository.save(sentenceId);
+  /// 조회 → 생성 → 저장을 한 트랜잭션으로 묶는다. drift 트랜잭션은 직렬화되므로
+  /// 버튼 연타 등으로 동시에 호출돼도 같은 문장이 sentences에 중복 생성되지 않는다.
+  /// (createSentence의 트랜잭션은 이 바깥 트랜잭션에 합류한다.)
+  ///
+  /// 같은 문장 = 원문이 같은 문장. 다시 분석해 번역·병음이 달라졌어도 원문이 같으면
+  /// 처음 저장한 행을 그대로 쓰고 새 번역은 버린다. 이미 저장돼 있으면 false.
+  Future<bool> saveSentence(SentenceAnalysis analysis) {
+    return database.transaction(() async {
+      final existingId = await sentenceRepository.findIdBySentence(
+        analysis.sentence,
+      );
+      final sentenceId =
+          existingId ?? await sentenceService.createSentence(analysis);
+      return savedSentenceRepository.save(sentenceId);
+    });
   }
 }

@@ -1,20 +1,21 @@
 import 'package:drift/drift.dart';
-import 'package:pass_kuai/table/database.dart';
+import 'package:pass_kuai/database/database.dart';
 
 class WordRepository {
   final AppDatabase database;
   late final $WordsTable table;
+
   WordRepository({required this.database}) {
     table = database.words;
   }
 
-  Future<Word?> findById(int id) {
+  Future<Word?> findById(int wordId) {
     return (database.select(
       table,
-    )..where((word) => word.id.equals(id))).getSingleOrNull();
+    )..where((word) => word.id.equals(wordId))).getSingleOrNull();
   }
 
-  Future<int> addWord(WordsCompanion word) async {
+  Future<int> insertIfAbsent(WordsCompanion word) async {
     final existing =
         await (database.select(table)..where(
               (w) =>

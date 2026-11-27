@@ -9,11 +9,11 @@ import 'package:pass_kuai/service/vocab_service.dart';
 
 final vocabServiceProvider = Provider<VocabService>((ref) {
   return VocabService(
-    database: ref.read(dbProvider),
-    wordRepository: ref.read(workdRepositoryProvider),
-    savedWordRepository: ref.read(savedWordRepositoryProvider),
-    sentenceService: ref.read(sentenceServiceProvider),
-    sentenceRepository: ref.read(sentenceRepositoryProvider),
-    savedSentenceRepository: ref.read(savedSentenceRepositoryProvider),
+    database: ref.watch(dbProvider),
+    wordRepository: ref.watch(wordRepositoryProvider),
+    savedWordRepository: ref.watch(savedWordRepositoryProvider),
+    sentenceService: ref.watch(sentenceServiceProvider),
+    sentenceRepository: ref.watch(sentenceRepositoryProvider),
+    savedSentenceRepository: ref.watch(savedSentenceRepositoryProvider),
   );
 });

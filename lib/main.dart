@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import 'router/router.dart';
-import 'theme/app_theme.dart';
+import 'package:pass_kuai/router/router.dart';
+import 'package:pass_kuai/theme/app_theme.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();

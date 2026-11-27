@@ -14,7 +14,7 @@ class AnalyzeResult {
 class SentenceAnalysis {
   final String sentence;
   final String translation;
-  final List<Word> words;
+  final List<WordAnalysis> words;
 
   const SentenceAnalysis({
     required this.sentence,
@@ -24,7 +24,7 @@ class SentenceAnalysis {
 
   factory SentenceAnalysis.fromJson(Map<String, dynamic> json) {
     final wordList = (json['words'] as List<dynamic>? ?? [])
-        .map((e) => Word.fromJson(e as Map<String, dynamic>))
+        .map((e) => WordAnalysis.fromJson(e as Map<String, dynamic>))
         .toList();
     return SentenceAnalysis(
       sentence: json['sentence'] as String? ?? '',
@@ -32,16 +32,18 @@ class SentenceAnalysis {
       words: wordList,
     );
   }
+
+  String get pinyin => words.map((w) => w.pinyin).join(' ');
 }
 
-class Word {
+class WordAnalysis {
   final String text;
   final String pinyin;
   final String meaning;
   final String? pos;
   final List<Syllable> syllables;
 
-  const Word({
+  const WordAnalysis({
     required this.text,
     required this.pinyin,
     required this.meaning,
@@ -49,11 +51,11 @@ class Word {
     required this.syllables,
   });
 
-  factory Word.fromJson(Map<String, dynamic> json) {
+  factory WordAnalysis.fromJson(Map<String, dynamic> json) {
     final syl = (json['syllables'] as List<dynamic>? ?? [])
         .map((e) => Syllable.fromJson(e as Map<String, dynamic>))
         .toList();
-    return Word(
+    return WordAnalysis(
       text: json['text'] as String? ?? '',
       pinyin: json['pinyin'] as String? ?? '',
       meaning: json['meaning'] as String? ?? '',

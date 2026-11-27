@@ -1,26 +1,26 @@
-import 'dart:convert';
-
 import 'package:drift/drift.dart';
+import 'package:pass_kuai/database/database.dart';
+import 'package:pass_kuai/mapper/word_mapper.dart';
 import 'package:pass_kuai/model/analyze_result.dart';
 import 'package:pass_kuai/repository/sentence_repository.dart';
 import 'package:pass_kuai/repository/sentence_word_repository.dart';
 import 'package:pass_kuai/repository/word_repository.dart';
-import 'package:pass_kuai/table/database.dart';
 
 class SentenceService {
   final AppDatabase database;
   final SentenceRepository sentenceRepository;
   final WordRepository wordRepository;
-  final SentenceWordsRepository sentenceWordsRepository;
+  final SentenceWordRepository sentenceWordRepository;
+
   SentenceService({
     required this.database,
     required this.sentenceRepository,
     required this.wordRepository,
-    required this.sentenceWordsRepository,
+    required this.sentenceWordRepository,
   });
 
   Future<void> deleteSentence(int sentenceId) {
-    return sentenceRepository.deleteSentence(sentenceId);
+    return sentenceRepository.deleteById(sentenceId);
   }
 
   Future<void> cleanupSearchData() async {
@@ -28,59 +28,67 @@ class SentenceService {
       final savedSentenceIds = database.selectOnly(database.savedSentences)
         ..addColumns([database.savedSentences.sentenceId]);
 
-      await (database.delete(database.sentences)
-            ..where((s) => s.id.isNotInQuery(savedSentenceIds)))
-          .go();
+      await (database.delete(
+        database.sentences,
+      )..where((s) => s.id.isNotInQuery(savedSentenceIds))).go();
 
       final usedWordIds = database.selectOnly(database.sentenceWords)
         ..addColumns([database.sentenceWords.wordId]);
       final savedWordIds = database.selectOnly(database.savedWords)
         ..addColumns([database.savedWords.wordId]);
 
-      await (database.delete(database.words)
-            ..where((w) =>
+      await (database.delete(database.words)..where(
+            (w) =>
                 w.id.isNotInQuery(usedWordIds) &
-                w.id.isNotInQuery(savedWordIds)))
+                w.id.isNotInQuery(savedWordIds),
+          ))
           .go();
     });
   }
 
-  Future<int> addSentence(SentenceAnalysis sentenceAnalysis) async {
-    String pinin = sentenceAnalysis.words.map((word) => word.pinyin).join(" ");
-
-    SentencesCompanion sentencesCompanion = SentencesCompanion(
-      sentence: Value(sentenceAnalysis.sentence),
-      translation: Value(sentenceAnalysis.translation),
-      pinyin: Value(pinin),
+  /// get-or-insert: 원문이 같은 문장이 이미 있으면 그 id를 그대로 돌려주고
+  /// 아무것도 쓰지 않는다(처음 저장한 번역·병음·단어 매핑 유지).
+  Future<int> createSentence(SentenceAnalysis analysis) async {
+    final sentencesCompanion = SentencesCompanion(
+      sentence: Value(analysis.sentence),
+      translation: Value(analysis.translation),
+      pinyin: Value(analysis.pinyin),
     );
 
-    List<WordsCompanion> wordCompanions = sentenceAnalysis.words
-        .map(
-          (word) => WordsCompanion(
-            word: Value(word.text),
-            translation: Value(word.meaning),
-            pinyin: Value(word.pinyin),
-            pos: Value(word.pos),
-            syllables: Value(
-              jsonEncode(word.syllables.map((s) => s.toJson()).toList()),
-            ),
-          ),
-        )
-        .toList();
+    final wordCompanions = analysis.words.map((w) => w.toCompanion()).toList();
     return database.transaction(() async {
-      int sentenceId = await sentenceRepository.addSentence(sentencesCompanion);
+      final existingId = await sentenceRepository.findIdBySentence(
+        analysis.sentence,
+      );
+      if (existingId != null) return existingId;
 
-      for (final wordCompanion in wordCompanions) {
-        int wordId = await wordRepository.addWord(wordCompanion);
+      final sentenceId = await sentenceRepository.insert(sentencesCompanion);
 
-        await sentenceWordsRepository.addSentenceWord(
+      for (var position = 0; position < wordCompanions.length; position++) {
+        final wordId = await wordRepository.insertIfAbsent(
+          wordCompanions[position],
+        );
+
+        await sentenceWordRepository.insert(
           SentenceWordsCompanion(
             sentenceId: Value(sentenceId),
             wordId: Value(wordId),
+            position: Value(position),
           ),
         );
       }
       return sentenceId;
     });
+  }
+
+  Future<SentenceAnalysis> loadAnalysis(Sentence sentence) async {
+    final words = await sentenceWordRepository.findWordsBySentenceId(
+      sentence.id,
+    );
+    return SentenceAnalysis(
+      sentence: sentence.sentence,
+      translation: sentence.translation,
+      words: words.map((w) => w.toAnalysis()).toList(),
+    );
   }
 }

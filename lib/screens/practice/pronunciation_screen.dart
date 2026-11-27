@@ -3,13 +3,13 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:pass_kuai/api/api_error.dart';
 import 'package:pass_kuai/components/ui.dart';
 import 'package:pass_kuai/model/pronunciation_result.dart';
 import 'package:pass_kuai/provider/stt_repository_provider.dart';
-import 'package:pass_kuai/provider/tts_provider.dart';
+import 'package:pass_kuai/provider/tts_service_provider.dart';
 import 'package:pass_kuai/theme/app_colors.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
 class PronunciationScreen extends ConsumerStatefulWidget {
@@ -18,7 +18,8 @@ class PronunciationScreen extends ConsumerStatefulWidget {
   final Object? target;
 
   @override
-  ConsumerState<PronunciationScreen> createState() => _PronunciationScreenState();
+  ConsumerState<PronunciationScreen> createState() =>
+      _PronunciationScreenState();
 }
 
 enum _Phase { idle, recording, uploading }
@@ -140,7 +141,10 @@ class _PronunciationScreenState extends ConsumerState<PronunciationScreen> {
     if (_target.isEmpty) {
       return Scaffold(
         appBar: AppBar(title: const Text('따라 말해보기')),
-        body: const MessageView(icon: Icons.mic_off_outlined, title: '연습할 문장이 없어요'),
+        body: const MessageView(
+          icon: Icons.mic_off_outlined,
+          title: '연습할 문장이 없어요',
+        ),
       );
     }
 
@@ -165,10 +169,20 @@ class _PronunciationScreenState extends ConsumerState<PronunciationScreen> {
                             children: [
                               const Text(
                                 '목표 문장',
-                                style: TextStyle(fontSize: 12, fontWeight: AppWeights.label, color: AppColors.sub),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: AppWeights.label,
+                                  color: AppColors.sub,
+                                ),
                               ),
                               const SizedBox(height: 4),
-                              Text(_target, style: const TextStyle(fontSize: 22, fontWeight: AppWeights.hanzi)),
+                              Text(
+                                _target,
+                                style: const TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: AppWeights.hanzi,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -178,7 +192,8 @@ class _PronunciationScreenState extends ConsumerState<PronunciationScreen> {
                           icon: Icons.volume_up_rounded,
                           size: 48,
                           onPressed: _phase == _Phase.idle
-                              ? () => ref.read(ttsServiceProvider).speak(_target)
+                              ? () =>
+                                    ref.read(ttsServiceProvider).speak(_target)
                               : null,
                         ),
                       ],
@@ -220,7 +235,11 @@ class _PronunciationScreenState extends ConsumerState<PronunciationScreen> {
         padding: EdgeInsets.symmetric(horizontal: 18, vertical: 28),
         child: Column(
           children: [
-            Icon(Icons.record_voice_over_outlined, size: 32, color: AppColors.primaryText),
+            Icon(
+              Icons.record_voice_over_outlined,
+              size: 32,
+              color: AppColors.primaryText,
+            ),
             SizedBox(height: 10),
             Text(
               '먼저 들어 보고,\n아래 버튼을 꾹 누른 채로 따라 말해 보세요.',
@@ -245,13 +264,20 @@ class _PronunciationScreenState extends ConsumerState<PronunciationScreen> {
             Wrap(
               spacing: 6,
               runSpacing: 8,
-              children: [for (final s in comparison.syllables) _SyllableChip(syllable: s)],
+              children: [
+                for (final s in comparison.syllables)
+                  _SyllableChip(syllable: s),
+              ],
             ),
             if (comparison.syllables.any((s) => !s.matched)) ...[
               const SizedBox(height: 12),
               const Text(
                 '빨간 테두리 글자를 다시 연습해 보세요',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.error),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.error,
+                ),
               ),
             ],
             if (comparison.extraCount > 0) ...[
@@ -265,7 +291,14 @@ class _PronunciationScreenState extends ConsumerState<PronunciationScreen> {
             const Divider(height: 1),
             const SizedBox(height: 14),
           ],
-          const Text('들린 문장', style: TextStyle(fontSize: 12, fontWeight: AppWeights.label, color: AppColors.sub)),
+          const Text(
+            '들린 문장',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: AppWeights.label,
+              color: AppColors.sub,
+            ),
+          ),
           const SizedBox(height: 3),
           Text(
             result.text.isEmpty ? '(아무것도 못 알아들었어요)' : result.text,
@@ -315,7 +348,13 @@ class _ScoreHeader extends StatelessWidget {
                     backgroundColor: AppColors.track,
                   ),
                 ),
-                Text('$percent%', style: const TextStyle(fontSize: 19, fontWeight: AppWeights.title)),
+                Text(
+                  '$percent%',
+                  style: const TextStyle(
+                    fontSize: 19,
+                    fontWeight: AppWeights.title,
+                  ),
+                ),
               ],
             ),
           ),
@@ -325,7 +364,13 @@ class _ScoreHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(_headline, style: const TextStyle(fontSize: 20, fontWeight: AppWeights.title)),
+              Text(
+                _headline,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: AppWeights.title,
+                ),
+              ),
               const SizedBox(height: 3),
               Text(
                 '$total글자 중 $matched글자가 들렸어요',
@@ -368,7 +413,11 @@ class _SyllableChip extends StatelessWidget {
 }
 
 class _RecordButton extends StatelessWidget {
-  const _RecordButton({required this.phase, required this.onStart, required this.onStop});
+  const _RecordButton({
+    required this.phase,
+    required this.onStart,
+    required this.onStop,
+  });
 
   final _Phase phase;
   final VoidCallback onStart;
@@ -402,7 +451,9 @@ class _RecordButton extends StatelessWidget {
                     height: recording ? 124 : 112,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: recording ? const Color(0xFFC6D9C0) : AppColors.primaryHalo,
+                      color: recording
+                          ? const Color(0xFFC6D9C0)
+                          : AppColors.primaryHalo,
                     ),
                   ),
                   Container(
@@ -416,9 +467,18 @@ class _RecordButton extends StatelessWidget {
                     child: uploading
                         ? const Padding(
                             padding: EdgeInsets.all(31),
-                            child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.4,
+                              color: Colors.white,
+                            ),
                           )
-                        : Icon(recording ? Icons.graphic_eq_rounded : Icons.mic_rounded, color: Colors.white, size: 36),
+                        : Icon(
+                            recording
+                                ? Icons.graphic_eq_rounded
+                                : Icons.mic_rounded,
+                            color: Colors.white,
+                            size: 36,
+                          ),
                   ),
                 ],
               ),
@@ -427,8 +487,14 @@ class _RecordButton extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          uploading ? '확인하는 중…' : (recording ? '듣고 있어요. 다 말하면 손을 떼세요' : '꾹 누르고 말한 뒤 손을 떼세요'),
-          style: const TextStyle(fontSize: 14, color: AppColors.sub, fontWeight: FontWeight.w700),
+          uploading
+              ? '확인하는 중…'
+              : (recording ? '듣고 있어요. 다 말하면 손을 떼세요' : '꾹 누르고 말한 뒤 손을 떼세요'),
+          style: const TextStyle(
+            fontSize: 14,
+            color: AppColors.sub,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ],
     );

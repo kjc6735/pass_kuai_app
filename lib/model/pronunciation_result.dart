@@ -41,7 +41,11 @@ class PronunciationComparison {
 }
 
 class SyllableMatch {
-  const SyllableMatch({required this.hanzi, required this.pinyin, required this.matched});
+  const SyllableMatch({
+    required this.hanzi,
+    required this.pinyin,
+    required this.matched,
+  });
 
   final String hanzi;
   final String pinyin;

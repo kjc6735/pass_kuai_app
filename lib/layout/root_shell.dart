@@ -3,17 +3,54 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pass_kuai/provider/study_service_provider.dart';
+import 'package:pass_kuai/provider/today_provider.dart';
 import 'package:pass_kuai/theme/app_colors.dart';
 
-class RootShell extends ConsumerWidget {
+class RootShell extends ConsumerStatefulWidget {
   const RootShell({super.key, required this.navigationShell});
 
   final StatefulNavigationShell navigationShell;
 
+  @override
+  ConsumerState<RootShell> createState() => _RootShellState();
+}
+
+class _RootShellState extends ConsumerState<RootShell> {
+  late final AppLifecycleListener _lifecycle;
+
+  @override
+  void initState() {
+    super.initState();
+    // 백그라운드에 있는 동안 자정이 지났거나 기기 시간이 바뀌었으면 복습 기준일을 갱신한다.
+    _lifecycle = AppLifecycleListener(
+      onResume: () => ref.read(todayProvider.notifier).refresh(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _lifecycle.dispose();
+    super.dispose();
+  }
+
+  StatefulNavigationShell get navigationShell => widget.navigationShell;
+
   static const _tabs = [
-    _TabSpec(label: '분석', icon: Icons.search_rounded, selectedIcon: Icons.search_rounded),
-    _TabSpec(label: '복습', icon: Icons.style_outlined, selectedIcon: Icons.style_rounded),
-    _TabSpec(label: '단어장', icon: Icons.bookmarks_outlined, selectedIcon: Icons.bookmarks_rounded),
+    _TabSpec(
+      label: '분석',
+      icon: Icons.search_rounded,
+      selectedIcon: Icons.search_rounded,
+    ),
+    _TabSpec(
+      label: '복습',
+      icon: Icons.style_outlined,
+      selectedIcon: Icons.style_rounded,
+    ),
+    _TabSpec(
+      label: '단어장',
+      icon: Icons.bookmarks_outlined,
+      selectedIcon: Icons.bookmarks_rounded,
+    ),
   ];
 
   void _onTap(int index) {
@@ -25,7 +62,7 @@ class RootShell extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final due = ref.watch(dueCountProvider).valueOrNull ?? 0;
 
     return Scaffold(
@@ -51,7 +88,11 @@ class RootShell extends ConsumerWidget {
 }
 
 class _TabSpec {
-  const _TabSpec({required this.label, required this.icon, required this.selectedIcon});
+  const _TabSpec({
+    required this.label,
+    required this.icon,
+    required this.selectedIcon,
+  });
 
   final String label;
   final IconData icon;
@@ -121,7 +162,11 @@ class _TabItem extends StatelessWidget {
       label: Text(badge > 99 ? '99+' : '$badge'),
       backgroundColor: selected ? Colors.white : AppColors.primary,
       textColor: selected ? AppColors.primaryText : Colors.white,
-      child: Icon(selected ? spec.selectedIcon : spec.icon, color: fg, size: 22),
+      child: Icon(
+        selected ? spec.selectedIcon : spec.icon,
+        color: fg,
+        size: 22,
+      ),
     );
 
     return Semantics(
@@ -139,7 +184,10 @@ class _TabItem extends StatelessWidget {
             curve: Curves.easeOutCubic,
             height: 48,
             constraints: const BoxConstraints(minWidth: 52),
-            padding: EdgeInsets.only(left: selected ? 16 : 14, right: selected ? 20 : 14),
+            padding: EdgeInsets.only(
+              left: selected ? 16 : 14,
+              right: selected ? 20 : 14,
+            ),
             decoration: BoxDecoration(
               color: selected ? AppColors.primary : Colors.transparent,
               borderRadius: BorderRadius.circular(24),
