@@ -26,7 +26,9 @@ class AppCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final shape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(radius),
-      side: outlined ? const BorderSide(color: AppColors.line) : BorderSide.none,
+      side: outlined
+          ? const BorderSide(color: AppColors.line)
+          : BorderSide.none,
     );
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -74,7 +76,10 @@ class PrimaryButton extends StatelessWidget {
             ? const SizedBox(
                 width: 22,
                 height: 22,
-                child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.4,
+                  color: Colors.white,
+                ),
               )
             : _Label(icon: icon, label: label),
       ),
@@ -83,7 +88,12 @@ class PrimaryButton extends StatelessWidget {
 }
 
 class SoftButton extends StatelessWidget {
-  const SoftButton({super.key, required this.label, required this.onPressed, this.icon});
+  const SoftButton({
+    super.key,
+    required this.label,
+    required this.onPressed,
+    this.icon,
+  });
 
   final String label;
   final VoidCallback? onPressed;
@@ -140,8 +150,16 @@ class IconTileButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (bg, fg, border) = switch (style) {
-      IconTileStyle.soft => (AppColors.primarySoft, AppColors.primarySoftText, null),
-      IconTileStyle.outline => (Colors.white, AppColors.primaryText, AppColors.border),
+      IconTileStyle.soft => (
+        AppColors.primarySoft,
+        AppColors.primarySoftText,
+        null,
+      ),
+      IconTileStyle.outline => (
+        Colors.white,
+        AppColors.primaryText,
+        AppColors.border,
+      ),
       IconTileStyle.filled => (AppColors.primary, Colors.white, null),
       IconTileStyle.plain => (Colors.transparent, AppColors.ink, null),
     };
@@ -153,7 +171,9 @@ class IconTileButton extends StatelessWidget {
         color: bg,
         shape: RoundedRectangleBorder(
           borderRadius: radius,
-          side: border == null ? BorderSide.none : BorderSide(color: border, width: 1.5),
+          side: border == null
+              ? BorderSide.none
+              : BorderSide(color: border, width: 1.5),
         ),
         child: InkWell(
           onTap: onPressed,
@@ -224,10 +244,16 @@ class SectionTitle extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.baseline,
       textBaseline: TextBaseline.alphabetic,
       children: [
-        Text(title, style: const TextStyle(fontSize: 17, fontWeight: AppWeights.title)),
+        Text(
+          title,
+          style: const TextStyle(fontSize: 17, fontWeight: AppWeights.title),
+        ),
         if (trailing != null) ...[
           const SizedBox(width: 6),
-          Text(trailing!, style: const TextStyle(fontSize: 13, color: AppColors.sub)),
+          Text(
+            trailing!,
+            style: const TextStyle(fontSize: 13, color: AppColors.sub),
+          ),
         ],
       ],
     );
@@ -269,14 +295,21 @@ class MessageView extends StatelessWidget {
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 20, fontWeight: AppWeights.title),
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: AppWeights.title,
+              ),
             ),
             if (body != null) ...[
               const SizedBox(height: 8),
               Text(
                 body!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.sub, fontSize: 15, height: 1.5),
+                style: const TextStyle(
+                  color: AppColors.sub,
+                  fontSize: 15,
+                  height: 1.5,
+                ),
               ),
             ],
             if (action != null) ...[const SizedBox(height: 24), action!],
@@ -288,7 +321,12 @@ class MessageView extends StatelessWidget {
 }
 
 class PageHeader extends StatelessWidget {
-  const PageHeader({super.key, required this.title, this.subtitle, this.trailing});
+  const PageHeader({
+    super.key,
+    required this.title,
+    this.subtitle,
+    this.trailing,
+  });
 
   final String title;
   final String? subtitle;
@@ -305,11 +343,19 @@ class PageHeader extends StatelessWidget {
               if (subtitle != null)
                 Text(
                   subtitle!,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.sub),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.sub,
+                  ),
                 ),
               Text(
                 title,
-                style: const TextStyle(fontSize: 26, fontWeight: AppWeights.title, letterSpacing: -0.5),
+                style: const TextStyle(
+                  fontSize: 26,
+                  fontWeight: AppWeights.title,
+                  letterSpacing: -0.5,
+                ),
               ),
             ],
           ),

@@ -31,7 +31,9 @@ void main() {
   });
 
   test('너무 긴 문장(422)은 서버가 준 안내를 보여준다', () {
-    final e = _http(422, {'message': '문장이 너무 길어서 한 번에 분석하지 못했어요. 조금 나눠서 넣어 주세요.'});
+    final e = _http(422, {
+      'message': '문장이 너무 길어서 한 번에 분석하지 못했어요. 조금 나눠서 넣어 주세요.',
+    });
 
     expect(friendlyErrorMessage(e), contains('나눠서'));
   });

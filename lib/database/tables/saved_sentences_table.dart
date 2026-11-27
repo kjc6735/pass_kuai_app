@@ -1,5 +1,5 @@
 import 'package:drift/drift.dart';
-import 'package:pass_kuai/table/sentences_table.dart';
+import 'package:pass_kuai/database/tables/sentences_table.dart';
 
 class SavedSentences extends Table {
   IntColumn get sentenceId => integer().references(Sentences, #id)();

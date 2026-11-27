@@ -409,7 +409,7 @@ class $WordsTable extends Words with TableInfo<$WordsTable, Word> {
     false,
     additionalChecks: GeneratedColumn.checkTextLength(
       minTextLength: 1,
-      maxTextLength: 100,
+      maxTextLength: 200,
     ),
     type: DriftSqlType.string,
     requiredDuringInsert: true,
@@ -436,18 +436,16 @@ class $WordsTable extends Words with TableInfo<$WordsTable, Word> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _syllablesMeta = const VerificationMeta(
-    'syllables',
-  );
   @override
-  late final GeneratedColumn<String> syllables = GeneratedColumn<String>(
+  late final GeneratedColumnWithTypeConverter<List<Syllable>, String>
+  syllables = GeneratedColumn<String>(
     'syllables',
     aliasedName,
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
     defaultValue: const Constant('[]'),
-  );
+  ).withConverter<List<Syllable>>($WordsTable.$convertersyllables);
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -505,12 +503,6 @@ class $WordsTable extends Words with TableInfo<$WordsTable, Word> {
         pos.isAcceptableOrUnknown(data['pos']!, _posMeta),
       );
     }
-    if (data.containsKey('syllables')) {
-      context.handle(
-        _syllablesMeta,
-        syllables.isAcceptableOrUnknown(data['syllables']!, _syllablesMeta),
-      );
-    }
     return context;
   }
 
@@ -544,10 +536,12 @@ class $WordsTable extends Words with TableInfo<$WordsTable, Word> {
         DriftSqlType.string,
         data['${effectivePrefix}pos'],
       ),
-      syllables: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}syllables'],
-      )!,
+      syllables: $WordsTable.$convertersyllables.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}syllables'],
+        )!,
+      ),
     );
   }
 
@@ -555,6 +549,9 @@ class $WordsTable extends Words with TableInfo<$WordsTable, Word> {
   $WordsTable createAlias(String alias) {
     return $WordsTable(attachedDatabase, alias);
   }
+
+  static TypeConverter<List<Syllable>, String> $convertersyllables =
+      const SyllablesConverter();
 }
 
 class Word extends DataClass implements Insertable<Word> {
@@ -563,7 +560,9 @@ class Word extends DataClass implements Insertable<Word> {
   final String translation;
   final String pinyin;
   final String? pos;
-  final String syllables;
+
+  /// SQL에서는 JSON TEXT, Dart에서는 `List<Syllable>`.
+  final List<Syllable> syllables;
   const Word({
     required this.id,
     required this.word,
@@ -582,7 +581,11 @@ class Word extends DataClass implements Insertable<Word> {
     if (!nullToAbsent || pos != null) {
       map['pos'] = Variable<String>(pos);
     }
-    map['syllables'] = Variable<String>(syllables);
+    {
+      map['syllables'] = Variable<String>(
+        $WordsTable.$convertersyllables.toSql(syllables),
+      );
+    }
     return map;
   }
 
@@ -608,7 +611,7 @@ class Word extends DataClass implements Insertable<Word> {
       translation: serializer.fromJson<String>(json['translation']),
       pinyin: serializer.fromJson<String>(json['pinyin']),
       pos: serializer.fromJson<String?>(json['pos']),
-      syllables: serializer.fromJson<String>(json['syllables']),
+      syllables: serializer.fromJson<List<Syllable>>(json['syllables']),
     );
   }
   @override
@@ -620,7 +623,7 @@ class Word extends DataClass implements Insertable<Word> {
       'translation': serializer.toJson<String>(translation),
       'pinyin': serializer.toJson<String>(pinyin),
       'pos': serializer.toJson<String?>(pos),
-      'syllables': serializer.toJson<String>(syllables),
+      'syllables': serializer.toJson<List<Syllable>>(syllables),
     };
   }
 
@@ -630,7 +633,7 @@ class Word extends DataClass implements Insertable<Word> {
     String? translation,
     String? pinyin,
     Value<String?> pos = const Value.absent(),
-    String? syllables,
+    List<Syllable>? syllables,
   }) => Word(
     id: id ?? this.id,
     word: word ?? this.word,
@@ -686,7 +689,7 @@ class WordsCompanion extends UpdateCompanion<Word> {
   final Value<String> translation;
   final Value<String> pinyin;
   final Value<String?> pos;
-  final Value<String> syllables;
+  final Value<List<Syllable>> syllables;
   const WordsCompanion({
     this.id = const Value.absent(),
     this.word = const Value.absent(),
@@ -729,7 +732,7 @@ class WordsCompanion extends UpdateCompanion<Word> {
     Value<String>? translation,
     Value<String>? pinyin,
     Value<String?>? pos,
-    Value<String>? syllables,
+    Value<List<Syllable>>? syllables,
   }) {
     return WordsCompanion(
       id: id ?? this.id,
@@ -760,7 +763,9 @@ class WordsCompanion extends UpdateCompanion<Word> {
       map['pos'] = Variable<String>(pos.value);
     }
     if (syllables.present) {
-      map['syllables'] = Variable<String>(syllables.value);
+      map['syllables'] = Variable<String>(
+        $WordsTable.$convertersyllables.toSql(syllables.value),
+      );
     }
     return map;
   }
@@ -811,8 +816,19 @@ class $SentenceWordsTable extends SentenceWords
       'REFERENCES words (id)',
     ),
   );
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
   @override
-  List<GeneratedColumn> get $columns => [sentenceId, wordId];
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [sentenceId, wordId, position];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -841,11 +857,19 @@ class $SentenceWordsTable extends SentenceWords
     } else if (isInserting) {
       context.missing(_wordIdMeta);
     }
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_positionMeta);
+    }
     return context;
   }
 
   @override
-  Set<GeneratedColumn> get $primaryKey => {sentenceId, wordId};
+  Set<GeneratedColumn> get $primaryKey => {sentenceId, position};
   @override
   SentenceWord map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
@@ -857,6 +881,10 @@ class $SentenceWordsTable extends SentenceWords
       wordId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}word_id'],
+      )!,
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
       )!,
     );
   }
@@ -870,12 +898,20 @@ class $SentenceWordsTable extends SentenceWords
 class SentenceWord extends DataClass implements Insertable<SentenceWord> {
   final int sentenceId;
   final int wordId;
-  const SentenceWord({required this.sentenceId, required this.wordId});
+
+  /// 문장 안에서 단어의 위치(0부터).
+  final int position;
+  const SentenceWord({
+    required this.sentenceId,
+    required this.wordId,
+    required this.position,
+  });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['sentence_id'] = Variable<int>(sentenceId);
     map['word_id'] = Variable<int>(wordId);
+    map['position'] = Variable<int>(position);
     return map;
   }
 
@@ -883,6 +919,7 @@ class SentenceWord extends DataClass implements Insertable<SentenceWord> {
     return SentenceWordsCompanion(
       sentenceId: Value(sentenceId),
       wordId: Value(wordId),
+      position: Value(position),
     );
   }
 
@@ -894,6 +931,7 @@ class SentenceWord extends DataClass implements Insertable<SentenceWord> {
     return SentenceWord(
       sentenceId: serializer.fromJson<int>(json['sentenceId']),
       wordId: serializer.fromJson<int>(json['wordId']),
+      position: serializer.fromJson<int>(json['position']),
     );
   }
   @override
@@ -902,19 +940,23 @@ class SentenceWord extends DataClass implements Insertable<SentenceWord> {
     return <String, dynamic>{
       'sentenceId': serializer.toJson<int>(sentenceId),
       'wordId': serializer.toJson<int>(wordId),
+      'position': serializer.toJson<int>(position),
     };
   }
 
-  SentenceWord copyWith({int? sentenceId, int? wordId}) => SentenceWord(
-    sentenceId: sentenceId ?? this.sentenceId,
-    wordId: wordId ?? this.wordId,
-  );
+  SentenceWord copyWith({int? sentenceId, int? wordId, int? position}) =>
+      SentenceWord(
+        sentenceId: sentenceId ?? this.sentenceId,
+        wordId: wordId ?? this.wordId,
+        position: position ?? this.position,
+      );
   SentenceWord copyWithCompanion(SentenceWordsCompanion data) {
     return SentenceWord(
       sentenceId: data.sentenceId.present
           ? data.sentenceId.value
           : this.sentenceId,
       wordId: data.wordId.present ? data.wordId.value : this.wordId,
+      position: data.position.present ? data.position.value : this.position,
     );
   }
 
@@ -922,44 +964,52 @@ class SentenceWord extends DataClass implements Insertable<SentenceWord> {
   String toString() {
     return (StringBuffer('SentenceWord(')
           ..write('sentenceId: $sentenceId, ')
-          ..write('wordId: $wordId')
+          ..write('wordId: $wordId, ')
+          ..write('position: $position')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(sentenceId, wordId);
+  int get hashCode => Object.hash(sentenceId, wordId, position);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is SentenceWord &&
           other.sentenceId == this.sentenceId &&
-          other.wordId == this.wordId);
+          other.wordId == this.wordId &&
+          other.position == this.position);
 }
 
 class SentenceWordsCompanion extends UpdateCompanion<SentenceWord> {
   final Value<int> sentenceId;
   final Value<int> wordId;
+  final Value<int> position;
   final Value<int> rowid;
   const SentenceWordsCompanion({
     this.sentenceId = const Value.absent(),
     this.wordId = const Value.absent(),
+    this.position = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   SentenceWordsCompanion.insert({
     required int sentenceId,
     required int wordId,
+    required int position,
     this.rowid = const Value.absent(),
   }) : sentenceId = Value(sentenceId),
-       wordId = Value(wordId);
+       wordId = Value(wordId),
+       position = Value(position);
   static Insertable<SentenceWord> custom({
     Expression<int>? sentenceId,
     Expression<int>? wordId,
+    Expression<int>? position,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (sentenceId != null) 'sentence_id': sentenceId,
       if (wordId != null) 'word_id': wordId,
+      if (position != null) 'position': position,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -967,11 +1017,13 @@ class SentenceWordsCompanion extends UpdateCompanion<SentenceWord> {
   SentenceWordsCompanion copyWith({
     Value<int>? sentenceId,
     Value<int>? wordId,
+    Value<int>? position,
     Value<int>? rowid,
   }) {
     return SentenceWordsCompanion(
       sentenceId: sentenceId ?? this.sentenceId,
       wordId: wordId ?? this.wordId,
+      position: position ?? this.position,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -985,6 +1037,9 @@ class SentenceWordsCompanion extends UpdateCompanion<SentenceWord> {
     if (wordId.present) {
       map['word_id'] = Variable<int>(wordId.value);
     }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -996,6 +1051,7 @@ class SentenceWordsCompanion extends UpdateCompanion<SentenceWord> {
     return (StringBuffer('SentenceWordsCompanion(')
           ..write('sentenceId: $sentenceId, ')
           ..write('wordId: $wordId, ')
+          ..write('position: $position, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1164,12 +1220,7 @@ class $SavedWordsTable extends SavedWords
 class SavedWord extends DataClass implements Insertable<SavedWord> {
   final int wordId;
   final DateTime savedAt;
-
-  /// 0 = 새 단어/틀린 단어, 5 = 가장 잘 아는 단어
   final int srsLevel;
-
-  /// 다음 복습 시각. null이면 아직 한 번도 안 본 단어라 바로 복습 대상.
-  /// (SQLite는 기존 표에 칸을 추가할 때 "지금 시각" 같은 기본값을 못 넣어서 null로 둔다.)
   final DateTime? nextReviewAt;
   final DateTime? lastReviewedAt;
   const SavedWord({
@@ -1589,6 +1640,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $SentenceWordsTable sentenceWords = $SentenceWordsTable(this);
   late final $SavedWordsTable savedWords = $SavedWordsTable(this);
   late final $SavedSentencesTable savedSentences = $SavedSentencesTable(this);
+  late final Index sentencesSentenceUnique = Index(
+    'sentences_sentence_unique',
+    'CREATE UNIQUE INDEX sentences_sentence_unique ON sentences (sentence)',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1599,6 +1654,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     sentenceWords,
     savedWords,
     savedSentences,
+    sentencesSentenceUnique,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -2020,7 +2076,7 @@ typedef $$WordsTableCreateCompanionBuilder =
       required String translation,
       required String pinyin,
       Value<String?> pos,
-      Value<String> syllables,
+      Value<List<Syllable>> syllables,
     });
 typedef $$WordsTableUpdateCompanionBuilder =
     WordsCompanion Function({
@@ -2029,7 +2085,7 @@ typedef $$WordsTableUpdateCompanionBuilder =
       Value<String> translation,
       Value<String> pinyin,
       Value<String?> pos,
-      Value<String> syllables,
+      Value<List<Syllable>> syllables,
     });
 
 final class $$WordsTableReferences
@@ -2106,9 +2162,10 @@ class $$WordsTableFilterComposer extends Composer<_$AppDatabase, $WordsTable> {
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get syllables => $composableBuilder(
+  ColumnWithTypeConverterFilters<List<Syllable>, List<Syllable>, String>
+  get syllables => $composableBuilder(
     column: $table.syllables,
-    builder: (column) => ColumnFilters(column),
+    builder: (column) => ColumnWithTypeConverterFilters(column),
   );
 
   Expression<bool> sentenceWordsRefs(
@@ -2228,7 +2285,7 @@ class $$WordsTableAnnotationComposer
   GeneratedColumn<String> get pos =>
       $composableBuilder(column: $table.pos, builder: (column) => column);
 
-  GeneratedColumn<String> get syllables =>
+  GeneratedColumnWithTypeConverter<List<Syllable>, String> get syllables =>
       $composableBuilder(column: $table.syllables, builder: (column) => column);
 
   Expression<T> sentenceWordsRefs<T extends Object>(
@@ -2315,7 +2372,7 @@ class $$WordsTableTableManager
                 Value<String> translation = const Value.absent(),
                 Value<String> pinyin = const Value.absent(),
                 Value<String?> pos = const Value.absent(),
-                Value<String> syllables = const Value.absent(),
+                Value<List<Syllable>> syllables = const Value.absent(),
               }) => WordsCompanion(
                 id: id,
                 word: word,
@@ -2331,7 +2388,7 @@ class $$WordsTableTableManager
                 required String translation,
                 required String pinyin,
                 Value<String?> pos = const Value.absent(),
-                Value<String> syllables = const Value.absent(),
+                Value<List<Syllable>> syllables = const Value.absent(),
               }) => WordsCompanion.insert(
                 id: id,
                 word: word,
@@ -2421,12 +2478,14 @@ typedef $$SentenceWordsTableCreateCompanionBuilder =
     SentenceWordsCompanion Function({
       required int sentenceId,
       required int wordId,
+      required int position,
       Value<int> rowid,
     });
 typedef $$SentenceWordsTableUpdateCompanionBuilder =
     SentenceWordsCompanion Function({
       Value<int> sentenceId,
       Value<int> wordId,
+      Value<int> position,
       Value<int> rowid,
     });
 
@@ -2485,6 +2544,11 @@ class $$SentenceWordsTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnFilters<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$SentencesTableFilterComposer get sentenceId {
     final $$SentencesTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -2541,6 +2605,11 @@ class $$SentenceWordsTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnOrderings<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$SentencesTableOrderingComposer get sentenceId {
     final $$SentencesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -2597,6 +2666,9 @@ class $$SentenceWordsTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  GeneratedColumn<int> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => column);
+
   $$SentencesTableAnnotationComposer get sentenceId {
     final $$SentencesTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -2674,20 +2746,24 @@ class $$SentenceWordsTableTableManager
               ({
                 Value<int> sentenceId = const Value.absent(),
                 Value<int> wordId = const Value.absent(),
+                Value<int> position = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SentenceWordsCompanion(
                 sentenceId: sentenceId,
                 wordId: wordId,
+                position: position,
                 rowid: rowid,
               ),
           createCompanionCallback:
               ({
                 required int sentenceId,
                 required int wordId,
+                required int position,
                 Value<int> rowid = const Value.absent(),
               }) => SentenceWordsCompanion.insert(
                 sentenceId: sentenceId,
                 wordId: wordId,
+                position: position,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

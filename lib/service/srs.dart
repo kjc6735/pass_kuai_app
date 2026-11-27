@@ -20,7 +20,10 @@ SrsResult reviewWord({
   final next = (level + 1).clamp(0, srsMaxLevel);
   final days = srsIntervalDays[next];
   final today = DateTime(now.year, now.month, now.day);
-  return SrsResult(level: next, nextReviewAt: today.add(Duration(days: days)));
+  return SrsResult(
+    level: next,
+    nextReviewAt: today.add(Duration(days: days)),
+  );
 }
 
 bool isDue(DateTime? nextReviewAt, DateTime now) =>

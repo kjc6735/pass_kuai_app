@@ -1,4 +1,3 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
 class TtsService {
@@ -25,9 +24,3 @@ class TtsService {
 
   void dispose() => _tts.stop();
 }
-
-final ttsServiceProvider = Provider<TtsService>((ref) {
-  final service = TtsService();
-  ref.onDispose(service.dispose);
-  return service;
-});

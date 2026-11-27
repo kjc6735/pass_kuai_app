@@ -1,16 +1,13 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pass_kuai/components/sentence_row.dart';
 import 'package:pass_kuai/components/ui.dart';
 import 'package:pass_kuai/components/word_row.dart';
-import 'package:pass_kuai/model/analyze_result.dart';
-import 'package:pass_kuai/provider/saved_sentence_repository_provider.dart';
-import 'package:pass_kuai/provider/saved_word_repository_provider.dart';
-import 'package:pass_kuai/provider/sentence_words_repository.provider.dart';
-import 'package:pass_kuai/provider/tts_provider.dart';
+import 'package:pass_kuai/provider/saved_sentences_provider.dart';
+import 'package:pass_kuai/provider/saved_words_provider.dart';
+import 'package:pass_kuai/provider/sentence_service_provider.dart';
+import 'package:pass_kuai/provider/tts_service_provider.dart';
 import 'package:pass_kuai/router/router.dart';
 import 'package:pass_kuai/theme/app_colors.dart';
 
@@ -162,8 +159,7 @@ class _SavedWordList extends ConsumerWidget {
                   SquareIconButton(
                     icon: Icons.volume_up_rounded,
                     tooltip: '${w.word} 듣기',
-                    onPressed: () =>
-                        ref.read(ttsServiceProvider).speak(w.word),
+                    onPressed: () => ref.read(ttsServiceProvider).speak(w.word),
                   ),
                   SquareIconButton(
                     icon: Icons.delete_outline,
@@ -225,33 +221,11 @@ class _SavedSentenceList extends ConsumerWidget {
                 sentence: s.sentence,
                 translation: s.translation,
                 onTap: () async {
-                  final words = await ref
-                      .read(sentenceWordsRepositoryProvider)
-                      .findWordsBySentence(s.id);
-                  final analysis = SentenceAnalysis(
-                    sentence: s.sentence,
-                    translation: s.translation,
-                    words: words.map((w) {
-                      final syl = (jsonDecode(w.syllables) as List)
-                          .map(
-                            (e) =>
-                                Syllable.fromJson(e as Map<String, dynamic>),
-                          )
-                          .toList();
-                      return Word(
-                        text: w.word,
-                        pinyin: w.pinyin,
-                        meaning: w.translation,
-                        pos: w.pos,
-                        syllables: syl,
-                      );
-                    }).toList(),
-                  );
+                  final analysis = await ref
+                      .read(sentenceServiceProvider)
+                      .loadAnalysis(s);
                   if (!context.mounted) return;
-                  context.pushNamed(
-                    RouteNames.sentenceDetail,
-                    extra: analysis,
-                  );
+                  context.pushNamed(RouteNames.sentenceDetail, extra: analysis);
                 },
                 actions: [
                   SquareIconButton(
@@ -288,7 +262,11 @@ class _EmptyState extends StatelessWidget {
   final IconData icon;
   final String title;
   final String body;
-  const _EmptyState({required this.icon, required this.title, required this.body});
+  const _EmptyState({
+    required this.icon,
+    required this.title,
+    required this.body,
+  });
 
   @override
   Widget build(BuildContext context) {

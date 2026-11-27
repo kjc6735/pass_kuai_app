@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../provider/db_provider.dart';
-import '../../theme/app_colors.dart';
-import '../../router/router.dart';
+import 'package:pass_kuai/provider/db_provider.dart';
+import 'package:pass_kuai/router/router.dart';
+import 'package:pass_kuai/theme/app_colors.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -29,9 +29,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       duration: const Duration(milliseconds: 900),
     );
     _fade = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
-    _scale = Tween<double>(begin: 0.86, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
-    );
+    _scale = Tween<double>(
+      begin: 0.86,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
     _controller.forward();
     _bootstrap();
   }
@@ -49,8 +50,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     try {
       final db = ref.read(dbProvider);
       await db.customSelect('SELECT 1').get();
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   @override

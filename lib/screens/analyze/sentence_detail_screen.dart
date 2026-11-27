@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pass_kuai/api/save_error.dart';
 import 'package:pass_kuai/components/ui.dart';
 import 'package:pass_kuai/components/word_row.dart';
 import 'package:pass_kuai/model/analyze_result.dart';
-import 'package:pass_kuai/provider/saved_sentence_repository_provider.dart';
-import 'package:pass_kuai/provider/saved_word_repository_provider.dart';
-import 'package:pass_kuai/provider/tts_provider.dart';
+import 'package:pass_kuai/provider/saved_sentences_provider.dart';
+import 'package:pass_kuai/provider/saved_words_provider.dart';
+import 'package:pass_kuai/provider/tts_service_provider.dart';
 import 'package:pass_kuai/provider/vocab_service_provider.dart';
 import 'package:pass_kuai/router/router.dart';
 import 'package:pass_kuai/theme/app_colors.dart';
@@ -32,22 +33,7 @@ class SentenceDetailScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('문장 분석'),
         actions: [
-          IconTileButton(
-            tooltip: '문장 저장',
-            icon: Icons.bookmark_border_rounded,
-            style: IconTileStyle.outline,
-            onPressed: () async {
-              final added = await ref.read(vocabServiceProvider).saveSentence(data);
-              if (added) ref.invalidate(savedSentencesProvider);
-              if (!context.mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(added ? '문장을 단어장에 저장했어요.' : '이미 단어장에 있어요.'),
-                  duration: const Duration(seconds: 1),
-                ),
-              );
-            },
-          ),
+          _SaveSentenceButton(sentence: data),
           const SizedBox(width: 12),
         ],
       ),
@@ -65,11 +51,21 @@ class SentenceDetailScreen extends ConsumerWidget {
                   runSpacing: 6,
                   children: [
                     for (final s in syllables)
-                      PinyinHanzi(hanzi: s.hanzi, pinyin: s.pinyin, color: toneColor(s.tone)),
+                      PinyinHanzi(
+                        hanzi: s.hanzi,
+                        pinyin: s.pinyin,
+                        color: toneColor(s.tone),
+                      ),
                   ],
                 ),
                 const SizedBox(height: 14),
-                Text(data.translation, style: const TextStyle(fontSize: 16, color: AppColors.inkSoft)),
+                Text(
+                  data.translation,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: AppColors.inkSoft,
+                  ),
+                ),
                 const SizedBox(height: 14),
                 const _ToneLegend(),
               ],
@@ -83,7 +79,8 @@ class SentenceDetailScreen extends ConsumerWidget {
                 child: SoftButton(
                   label: '듣기',
                   icon: Icons.volume_up_rounded,
-                  onPressed: () => ref.read(ttsServiceProvider).speak(data.sentence),
+                  onPressed: () =>
+                      ref.read(ttsServiceProvider).speak(data.sentence),
                 ),
               ),
               const SizedBox(width: 10),
@@ -92,7 +89,10 @@ class SentenceDetailScreen extends ConsumerWidget {
                 child: PrimaryButton(
                   label: '따라 말해보기',
                   icon: Icons.mic_none_rounded,
-                  onPressed: () => context.pushNamed(RouteNames.practice, extra: data.sentence),
+                  onPressed: () => context.pushNamed(
+                    RouteNames.practice,
+                    extra: data.sentence,
+                  ),
                 ),
               ),
             ],
@@ -102,9 +102,15 @@ class SentenceDetailScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
-              const Text('단어', style: TextStyle(fontSize: 17, fontWeight: AppWeights.title)),
+              const Text(
+                '단어',
+                style: TextStyle(fontSize: 17, fontWeight: AppWeights.title),
+              ),
               const SizedBox(width: 6),
-              Text('${data.words.length}개', style: const TextStyle(fontSize: 13, color: AppColors.sub)),
+              Text(
+                '${data.words.length}개',
+                style: const TextStyle(fontSize: 13, color: AppColors.sub),
+              ),
             ],
           ),
           const SizedBox(height: 10),
@@ -127,17 +133,29 @@ class _ToneLegend extends StatelessWidget {
       spacing: 12,
       runSpacing: 6,
       children: [
-        for (final (label, tone) in const [('1성', 1), ('2성', 2), ('3성', 3), ('4성', 4), ('경성', 0)])
+        for (final (label, tone) in const [
+          ('1성', 1),
+          ('2성', 2),
+          ('3성', 3),
+          ('4성', 4),
+          ('경성', 0),
+        ])
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 width: 7,
                 height: 7,
-                decoration: BoxDecoration(color: toneColor(tone), shape: BoxShape.circle),
+                decoration: BoxDecoration(
+                  color: toneColor(tone),
+                  shape: BoxShape.circle,
+                ),
               ),
               const SizedBox(width: 5),
-              Text(label, style: const TextStyle(fontSize: 11, color: AppColors.sub)),
+              Text(
+                label,
+                style: const TextStyle(fontSize: 11, color: AppColors.sub),
+              ),
             ],
           ),
       ],
@@ -146,15 +164,94 @@ class _ToneLegend extends StatelessWidget {
 }
 
 class _WordRow extends ConsumerStatefulWidget {
-  final Word word;
+  final WordAnalysis word;
   const _WordRow({required this.word});
 
   @override
   ConsumerState<_WordRow> createState() => _WordRowState();
 }
 
+/// 저장 실패 안내. 성공 스낵바(1초)보다 길게 보여서 읽을 시간을 준다.
+void _showSaveError(BuildContext context, Object error) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(friendlySaveErrorMessage(error)),
+      duration: const Duration(seconds: 3),
+    ),
+  );
+}
+
+/// 저장 중에는 버튼을 꺼서 연타로 같은 요청이 여러 번 가지 않게 한다.
+class _SaveSentenceButton extends ConsumerStatefulWidget {
+  const _SaveSentenceButton({required this.sentence});
+
+  final SentenceAnalysis sentence;
+
+  @override
+  ConsumerState<_SaveSentenceButton> createState() =>
+      _SaveSentenceButtonState();
+}
+
+class _SaveSentenceButtonState extends ConsumerState<_SaveSentenceButton> {
+  bool _saving = false;
+
+  Future<void> _save() async {
+    setState(() => _saving = true);
+    try {
+      final added = await ref
+          .read(vocabServiceProvider)
+          .saveSentence(widget.sentence);
+      if (added) ref.invalidate(savedSentencesProvider);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(added ? '문장을 단어장에 저장했어요.' : '이미 단어장에 있어요.'),
+          duration: const Duration(seconds: 1),
+        ),
+      );
+    } catch (e, st) {
+      debugPrint('문장 저장 실패: $e\n$st');
+      if (mounted) _showSaveError(context, e);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IconTileButton(
+      tooltip: '문장 저장',
+      icon: Icons.bookmark_border_rounded,
+      style: IconTileStyle.outline,
+      onPressed: _saving ? null : _save,
+    );
+  }
+}
+
 class _WordRowState extends ConsumerState<_WordRow> {
   bool _saved = false;
+  bool _saving = false;
+
+  Future<void> _save() async {
+    setState(() => _saving = true);
+    try {
+      final added = await ref.read(vocabServiceProvider).saveWord(widget.word);
+      if (added) ref.invalidate(savedWordsProvider);
+      if (!mounted) return;
+      setState(() => _saved = true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(added ? '단어장에 저장했어요.' : '이미 단어장에 있어요.'),
+          duration: const Duration(seconds: 1),
+        ),
+      );
+    } catch (e, st) {
+      debugPrint('단어 저장 실패: $e\n$st');
+      if (mounted) _showSaveError(context, e);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -179,18 +276,7 @@ class _WordRowState extends ConsumerState<_WordRow> {
           tooltip: _saved ? '${word.text} 단어장에 있음' : '${word.text} 단어장에 저장',
           icon: _saved ? Icons.check_rounded : Icons.add,
           style: _saved ? IconTileStyle.filled : IconTileStyle.outline,
-          onPressed: () async {
-            final added = await ref.read(vocabServiceProvider).saveWord(word);
-            if (added) ref.invalidate(savedWordsProvider);
-            if (!context.mounted) return;
-            setState(() => _saved = true);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(added ? '단어장에 저장했어요.' : '이미 단어장에 있어요.'),
-                duration: const Duration(seconds: 1),
-              ),
-            );
-          },
+          onPressed: _saving ? null : _save,
         ),
       ],
     );

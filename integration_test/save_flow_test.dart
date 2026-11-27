@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:pass_kuai/main.dart';
 import 'package:pass_kuai/provider/db_provider.dart';
-import 'package:pass_kuai/table/database.dart';
+import 'package:pass_kuai/database/database.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();

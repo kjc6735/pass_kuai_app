@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-
-import '../layout/root_shell.dart';
-import '../screens/analyze/analyze_home_screen.dart';
-import '../screens/analyze/sentence_detail_screen.dart';
-import '../screens/practice/pronunciation_screen.dart';
-import '../screens/splash/splash_screen.dart';
-import '../screens/study/study_screen.dart';
-import '../screens/vocab/vocab_screen.dart';
+import 'package:pass_kuai/layout/root_shell.dart';
+import 'package:pass_kuai/screens/analyze/analyze_home_screen.dart';
+import 'package:pass_kuai/screens/analyze/sentence_detail_screen.dart';
+import 'package:pass_kuai/screens/practice/pronunciation_screen.dart';
+import 'package:pass_kuai/screens/splash/splash_screen.dart';
+import 'package:pass_kuai/screens/study/study_screen.dart';
+import 'package:pass_kuai/screens/vocab/vocab_screen.dart';
 
 abstract final class RoutePaths {
   static const splash = '/splash';

@@ -1,5 +1,5 @@
 import 'package:drift/drift.dart';
-import 'package:pass_kuai/table/database.dart';
+import 'package:pass_kuai/database/database.dart';
 
 class SavedWordRepository {
   final AppDatabase database;
@@ -9,45 +9,42 @@ class SavedWordRepository {
     table = database.savedWords;
   }
 
-  Future<List<Word>> findSavedWords() {
+  Future<List<Word>> findAllWords() {
     final words = database.words;
-    final query =
-        database.select(table).join([
-          innerJoin(words, words.id.equalsExp(table.wordId)),
-        ])..orderBy([OrderingTerm.desc(table.savedAt)]);
+    final query = database.select(table).join([
+      innerJoin(words, words.id.equalsExp(table.wordId)),
+    ])..orderBy([OrderingTerm.desc(table.savedAt)]);
 
     return query.map((row) => row.readTable(words)).get();
   }
 
-  Future<SavedWord> findById(int id) {
+  Future<SavedWord> findByWordId(int wordId) {
     return (database.select(
       table,
-    )..where((savedWord) => savedWord.wordId.equals(id))).getSingle();
-  }
-
-  Future<int> insert(SavedWordsCompanion word) {
-    return database.into(table).insert(word);
+    )..where((savedWord) => savedWord.wordId.equals(wordId))).getSingle();
   }
 
   Future<bool> save(int wordId) async {
-    final existing =
-        await (database.select(table)
-              ..where((w) => w.wordId.equals(wordId)))
-            .getSingleOrNull();
+    final existing = await (database.select(
+      table,
+    )..where((w) => w.wordId.equals(wordId))).getSingleOrNull();
     if (existing != null) return false;
 
-    await database.into(table).insert(SavedWordsCompanion(wordId: Value(wordId)));
+    await database
+        .into(table)
+        .insert(SavedWordsCompanion(wordId: Value(wordId)));
     return true;
   }
 
-  Future<void> delete(int id) {
+  Future<void> deleteByWordId(int wordId) {
     return (database.delete(
       table,
-    )..where((savedWord) => savedWord.wordId.equals(id))).go();
+    )..where((savedWord) => savedWord.wordId.equals(wordId))).go();
   }
 
   Expression<bool> _dueFilter(DateTime now) =>
-      table.nextReviewAt.isNull() | table.nextReviewAt.isSmallerOrEqualValue(now);
+      table.nextReviewAt.isNull() |
+      table.nextReviewAt.isSmallerOrEqualValue(now);
 
   Future<List<Word>> findDueWords(DateTime now, {int limit = 50}) {
     final words = database.words;
@@ -70,10 +67,10 @@ class SavedWordRepository {
     return query.map((row) => row.read(count) ?? 0).watchSingle();
   }
 
-  Future<int> findLevel(int wordId) async {
-    final row =
-        await (database.select(table)..where((w) => w.wordId.equals(wordId)))
-            .getSingleOrNull();
+  Future<int> findSrsLevel(int wordId) async {
+    final row = await (database.select(
+      table,
+    )..where((w) => w.wordId.equals(wordId))).getSingleOrNull();
     return row?.srsLevel ?? 0;
   }
 
@@ -83,7 +80,9 @@ class SavedWordRepository {
     required DateTime nextReviewAt,
     required DateTime reviewedAt,
   }) {
-    return (database.update(table)..where((w) => w.wordId.equals(wordId))).write(
+    return (database.update(
+      table,
+    )..where((w) => w.wordId.equals(wordId))).write(
       SavedWordsCompanion(
         srsLevel: Value(level),
         nextReviewAt: Value(nextReviewAt),
